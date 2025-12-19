@@ -108,22 +108,55 @@ if ($inputPass === $adminPass) {
             echo "<script>alert('로그 삭제 완료');</script>";
         }
     }
-    // 3. Reset Data
-    if (isset($_POST['reset_target'])) {
-        $target = $_POST['reset_target'];
-        if ($target === 'rankings') {
-            file_put_contents('../data/rankings.json', json_encode([]));
-            echo "<script>alert('🏆 랭킹 데이터 초기화 완료');</script>";
-        } elseif ($target === 'users') {
-            file_put_contents('../data/users.json', json_encode([]));
-            echo "<script>alert('👥 사용자 데이터 초기화 완료');</script>";
+    // 4. Download All Logs (ZIP)
+    if (isset($_POST['download_zip'])) {
+        $zipname = 'all_logs_' . date('Ymd_His') . '.zip';
+        $zipPath = '../data/' . $zipname;
+        
+        if (class_exists('ZipArchive')) {
+            $zip = new ZipArchive;
+            if ($zip->open($zipPath, ZipArchive::CREATE) === TRUE) {
+                $files = scandir('../data/logs');
+                $count = 0;
+                foreach ($files as $file) {
+                    if ($file === '.' || $file === '..') continue;
+                    $filePath = '../data/logs/' . $file;
+                    if (is_file($filePath)) {
+                        $zip->addFile($filePath, $file);
+                        $count++;
+                    }
+                }
+                $zip->close();
+
+                if ($count > 0 && file_exists($zipPath)) {
+                    // Force Download
+                    header('Content-Type: application/zip');
+                    header('Content-Disposition: attachment; filename="'.$zipname.'"');
+                    header('Content-Length: ' . filesize($zipPath));
+                    readfile($zipPath);
+                    unlink($zipPath); // Delete zip after download
+                    exit;
+                } else {
+                    echo "<script>alert('다운로드할 로그 파일이 없습니다.');</script>";
+                }
+            } else {
+                echo "<script>alert('ZIP 파일 생성 실패');</script>";
+            }
+        } else {
+            echo "<script>alert('이 서버는 ZIP 기능을 지원하지 않습니다.');</script>";
         }
     }
 }
 ?>
     <!-- Admin Actions -->
     <div style="background:#fff3cd; padding:15px; border:1px solid #ffeeba; margin-bottom:20px;">
-        <h3>⚠️ Danger Zone</h3>
+        <h3>⚠️ Danger Zone & Actions</h3>
+        <form method="POST" style="display:inline;">
+            <input type="hidden" name="pass" value="<?= htmlspecialchars($inputPass) ?>">
+            <input type="hidden" name="download_zip" value="1">
+            <button type="submit" style="background:#4CAF50; color:white; border:none; padding:8px 15px; cursor:pointer; margin-right:10px;">📦 전체 로그 다운로드 (ZIP)</button>
+        </form>
+
         <form method="POST" style="display:inline;" onsubmit="return confirm('정말 모든 랭킹 데이터를 삭제하시겠습니까?');">
             <input type="hidden" name="pass" value="<?= htmlspecialchars($inputPass) ?>">
             <input type="hidden" name="reset_target" value="rankings">
