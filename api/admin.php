@@ -4,26 +4,107 @@ header('Content-Type: text/html; charset=utf-8');
 $userFile = '../data/users.json';
 $rankFile = '../data/rankings.json';
 
-// Simple Password Protection (Hardcoded for simplicity)
-// Load password from external file (ignored by git)
+// Load password
 $adminPass = "1234"; // Fallback default
 if (file_exists('secret.php')) {
     include 'secret.php';
 }
 $inputPass = $_POST['pass'] ?? $_GET['pass'] ?? '';
 
+// Handle Actions (MUST BE BEFORE HTML OUTPUT for Headers to work)
+if ($inputPass === $adminPass) {
+    // 1. Download All Logs (ZIP) - MOVED TO TOP
+    if (isset($_POST['download_zip'])) {
+        $zipname = 'all_logs_' . date('Ymd_His') . '.zip';
+        $zipPath = '../data/' . $zipname;
+        
+        if (class_exists('ZipArchive')) {
+            $zip = new ZipArchive;
+            if ($zip->open($zipPath, ZipArchive::CREATE) === TRUE) {
+                $files = scandir('../data/logs');
+                $count = 0;
+                foreach ($files as $file) {
+                    if ($file === '.' || $file === '..') continue;
+                    $filePath = '../data/logs/' . $file;
+                    if (is_file($filePath)) {
+                        $zip->addFile($filePath, $file);
+                        $count++;
+                    }
+                }
+                $zip->close();
+
+                if ($count > 0 && file_exists($zipPath)) {
+                    // Start of buffer cleanup to prevent corruption
+                    if (ob_get_level()) ob_end_clean();
+                    
+                    header('Content-Type: application/zip');
+                    header('Content-Disposition: attachment; filename="'.$zipname.'"');
+                    header('Content-Length: ' . filesize($zipPath));
+                    readfile($zipPath);
+                    unlink($zipPath); 
+                    exit;
+                } else {
+                    echo "<script>alert('다운로드할 로그 파일이 없습니다.');</script>";
+                }
+            } else {
+                echo "<script>alert('ZIP 파일 생성 실패');</script>";
+            }
+        } else {
+            echo "<script>alert('이 서버는 ZIP 기능을 지원하지 않습니다.');</script>";
+        }
+    }
+
+    // 2. File Upload
+    if (isset($_FILES['update_file'])) {
+        $f = $_FILES['update_file'];
+        $ext = pathinfo($f['name'], PATHINFO_EXTENSION);
+        $target = '';
+        if ($ext === 'html' || $ext === 'js' || $ext === 'csv') {
+            $target = '../' . basename($f['name']);
+        } elseif ($ext === 'php') {
+            $target = './' . basename($f['name']);
+        } elseif ($ext === 'json') {
+            $target = '../data/' . basename($f['name']);
+        }
+
+        if ($target && move_uploaded_file($f['tmp_name'], $target)) {
+            echo "<script>alert('파일 업로드 성공: {$f['name']}');</script>";
+        } else {
+            echo "<script>alert('업로드 실패');</script>";
+        }
+    }
+
+    // 3. Delete Log
+    if (isset($_POST['delete_log'])) {
+        $fileToDelete = '../data/logs/' . basename($_POST['delete_log']);
+        if (file_exists($fileToDelete)) {
+            unlink($fileToDelete);
+            echo "<script>alert('로그 삭제 완료');</script>";
+        }
+    }
+    
+    // 4. Reset Data
+    if (isset($_POST['reset_target'])) {
+        $target = $_POST['reset_target'];
+        if ($target === 'rankings') {
+            file_put_contents('../data/rankings.json', json_encode([]));
+            echo "<script>alert('🏆 랭킹 데이터 초기화 완료');</script>";
+        } elseif ($target === 'users') {
+            file_put_contents('../data/users.json', json_encode([]));
+            echo "<script>alert('👥 사용자 데이터 초기화 완료');</script>";
+        }
+    }
+}
+
 if ($inputPass !== $adminPass) {
     echo '<form method="POST">Code: <input type="password" name="pass"><input type="submit" value="Login"></form>';
     exit;
 }
 
-// Load Users
+// Load Data
 $users = file_exists($userFile) ? json_decode(file_get_contents($userFile), true) : [];
 $userCount = is_array($users) ? count($users) : 0;
-
-// Load Rankings
 $rankings = file_exists($rankFile) ? json_decode(file_get_contents($rankFile), true) : [];
-
 ?>
 <!DOCTYPE html>
 <html>
@@ -41,6 +122,36 @@ $rankings = file_exists($rankFile) ? json_decode(file_get_contents($rankFile), t
 <body>
     <h1>📊 Data Viewer</h1>
     
+    <!-- Admin Actions UI -->
+    <div style="background:#fff3cd; padding:15px; border:1px solid #ffeeba; margin-bottom:20px;">
+        <h3>⚠️ Danger Zone & Actions</h3>
+        <form method="POST" style="display:inline;">
+            <input type="hidden" name="pass" value="<?= htmlspecialchars($inputPass) ?>">
+            <input type="hidden" name="download_zip" value="1">
+            <button type="submit" style="background:#4CAF50; color:white; border:none; padding:8px 15px; cursor:pointer; margin-right:10px;">📦 전체 로그 다운로드 (ZIP)</button>
+        </form>
+
+        <form method="POST" style="display:inline;" onsubmit="return confirm('정말 모든 랭킹 데이터를 삭제하시겠습니까?');">
+            <input type="hidden" name="pass" value="<?= htmlspecialchars($inputPass) ?>">
+            <input type="hidden" name="reset_target" value="rankings">
+            <button type="submit" style="background:#ff4444; color:white; border:none; padding:8px 15px; cursor:pointer;">🏆 랭킹 초기화</button>
+        </form>
+        <form method="POST" style="display:inline; margin-left:10px;" onsubmit="return confirm('정말 모든 사용자 정보를 삭제하시겠습니까?');">
+            <input type="hidden" name="pass" value="<?= htmlspecialchars($inputPass) ?>">
+            <input type="hidden" name="reset_target" value="users">
+            <button type="submit" style="background:#ff4444; color:white; border:none; padding:8px 15px; cursor:pointer;">👥 회원 초기화</button>
+        </form>
+    </div>
+
+    <!-- File Uploader -->
+    <h2>🚀 Server File Update</h2>
+    <p>파일질라 없이 여기서 파일(`index.html`, `.php`, `.js`)을 업로드하면 덮어씌워집니다.</p>
+    <form method="POST" enctype="multipart/form-data" style="background:#f9f9f9; padding:15px; border:1px solid #ddd;">
+        <input type="hidden" name="pass" value="<?= htmlspecialchars($inputPass) ?>">
+        <input type="file" name="update_file" required>
+        <button type="submit" onclick="return confirm('정말 덮어씌우시겠습니까?');">Upload & Update</button>
+    </form>
+
     <h2>👥 Registered Users (<?= $userCount ?>)</h2>
     <table>
         <tr><th>Student ID</th><th>Name</th><th>Joined</th></tr>
@@ -79,110 +190,6 @@ $rankings = file_exists($rankFile) ? json_decode(file_get_contents($rankFile), t
     <?php else: ?>
         <p>No rankings data yet.</p>
     <?php endif; ?>
-
-<?php
-// Handle Actions
-if ($inputPass === $adminPass) {
-    // 1. File Upload (Update Code)
-    if (isset($_FILES['update_file'])) {
-        $f = $_FILES['update_file'];
-        $ext = pathinfo($f['name'], PATHINFO_EXTENSION);
-        $target = '';
-        
-        // Decide target based on extension
-        if ($ext === 'html' || $ext === 'js' || $ext === 'csv') {
-            $target = '../' . basename($f['name']);
-        } elseif ($ext === 'php') {
-            $target = './' . basename($f['name']);
-        } elseif ($ext === 'json') {
-            $target = '../data/' . basename($f['name']);
-        }
-
-        if ($target && move_uploaded_file($f['tmp_name'], $target)) {
-            echo "<script>alert('파일 업로드 성공: {$f['name']}');</script>";
-            // Refresh to see changes if needed, but simple alert is enough
-        } else {
-            echo "<script>alert('업로드 실패 또는 지원하지 않는 파일 형식');</script>";
-        }
-    }
-
-    // 2. Delete Log
-    if (isset($_POST['delete_log'])) {
-        $fileToDelete = '../data/logs/' . basename($_POST['delete_log']);
-        if (file_exists($fileToDelete)) {
-            unlink($fileToDelete);
-            echo "<script>alert('로그 삭제 완료');</script>";
-        }
-    }
-    // 4. Download All Logs (ZIP)
-    if (isset($_POST['download_zip'])) {
-        $zipname = 'all_logs_' . date('Ymd_His') . '.zip';
-        $zipPath = '../data/' . $zipname;
-        
-        if (class_exists('ZipArchive')) {
-            $zip = new ZipArchive;
-            if ($zip->open($zipPath, ZipArchive::CREATE) === TRUE) {
-                $files = scandir('../data/logs');
-                $count = 0;
-                foreach ($files as $file) {
-                    if ($file === '.' || $file === '..') continue;
-                    $filePath = '../data/logs/' . $file;
-                    if (is_file($filePath)) {
-                        $zip->addFile($filePath, $file);
-                        $count++;
-                    }
-                }
-                $zip->close();
-
-                if ($count > 0 && file_exists($zipPath)) {
-                    // Force Download
-                    header('Content-Type: application/zip');
-                    header('Content-Disposition: attachment; filename="'.$zipname.'"');
-                    header('Content-Length: ' . filesize($zipPath));
-                    readfile($zipPath);
-                    unlink($zipPath); // Delete zip after download
-                    exit;
-                } else {
-                    echo "<script>alert('다운로드할 로그 파일이 없습니다.');</script>";
-                }
-            } else {
-                echo "<script>alert('ZIP 파일 생성 실패');</script>";
-            }
-        } else {
-            echo "<script>alert('이 서버는 ZIP 기능을 지원하지 않습니다.');</script>";
-        }
-    }
-}
-?>
-    <!-- Admin Actions -->
-    <div style="background:#fff3cd; padding:15px; border:1px solid #ffeeba; margin-bottom:20px;">
-        <h3>⚠️ Danger Zone & Actions</h3>
-        <form method="POST" style="display:inline;">
-            <input type="hidden" name="pass" value="<?= htmlspecialchars($inputPass) ?>">
-            <input type="hidden" name="download_zip" value="1">
-            <button type="submit" style="background:#4CAF50; color:white; border:none; padding:8px 15px; cursor:pointer; margin-right:10px;">📦 전체 로그 다운로드 (ZIP)</button>
-        </form>
-
-        <form method="POST" style="display:inline;" onsubmit="return confirm('정말 모든 랭킹 데이터를 삭제하시겠습니까?');">
-            <input type="hidden" name="pass" value="<?= htmlspecialchars($inputPass) ?>">
-            <input type="hidden" name="reset_target" value="rankings">
-            <button type="submit" style="background:#ff4444; color:white; border:none; padding:8px 15px; cursor:pointer;">🏆 랭킹 초기화</button>
-        </form>
-        <form method="POST" style="display:inline; margin-left:10px;" onsubmit="return confirm('정말 모든 사용자 정보를 삭제하시겠습니까?');">
-            <input type="hidden" name="pass" value="<?= htmlspecialchars($inputPass) ?>">
-            <input type="hidden" name="reset_target" value="users">
-            <button type="submit" style="background:#ff4444; color:white; border:none; padding:8px 15px; cursor:pointer;">👥 회원 초기화</button>
-        </form>
-    </div>
-
-    <!-- File Uploader -->
-    <h2>🚀 Server File Update</h2>
-    <p>파일질라 없이 여기서 파일(`index.html`, `.php`, `.js`)을 업로드하면 덮어씌워집니다.</p>
-    <form method="POST" enctype="multipart/form-data" style="background:#f9f9f9; padding:15px; border:1px solid #ddd;">
-        <input type="hidden" name="pass" value="<?= htmlspecialchars($inputPass) ?>">
-        <input type="file" name="update_file" required>
-        <button type="submit" onclick="return confirm('정말 덮어씌우시겠습니까?');">Upload & Update</button>
-    </form>
 
     <h2>📂 Log Files</h2>
     <ul>
