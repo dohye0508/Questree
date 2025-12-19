@@ -48,8 +48,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         return $a['time'] <=> $b['time'];
     });
 
-    // Top 5
-    $data[$mode] = array_slice($data[$mode], 0, 5);
+    // Top 100 (Expanded from 5)
+    $data[$mode] = array_slice($data[$mode], 0, 100);
 
     file_put_contents($dataFile, json_encode($data, JSON_UNESCAPED_UNICODE), LOCK_EX);
     echo json_encode(['success' => true]);

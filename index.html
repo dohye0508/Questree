@@ -966,8 +966,8 @@ async function saveRanking(modeKey, name, timeVal){
 async function openRankingModal(modeKey){
   if(!modeKey) modeKey = sizeSel.options[sizeSel.selectedIndex].text; 
   const key = sizeSel.value;
-  rankingModalSubtitle.textContent = `${modeKey} Top 5 Records`;
-  
+  rankingModalSubtitle.textContent = `${modeKey} Ranking`;
+
   // Show loading state or empty first
   rankList.innerHTML = `<div class="rank-empty">불러오는 중...</div>`;
   rankingModal.classList.remove("hidden");
@@ -977,20 +977,37 @@ async function openRankingModal(modeKey){
   if(ranks.length === 0){
     rankList.innerHTML = `<div class="rank-empty">아직 기록이 없습니다.<br>첫 번째 주인공이 되어보세요!</div>`;
   } else {
-    let html = "";
-    ranks.forEach((r, idx) => {
-      const cls = idx === 0 ? "rank-item top1" : "rank-item";
-      html += `
-        <div class="${cls}">
-          <div style="display:flex; align-items:center;">
-             <span class="rank-rank">${idx+1}</span>
-             <span class="rank-name">${escapeHtml(r.name)}</span>
+    // Render Function
+    const renderList = (limit) => {
+      let html = "";
+      ranks.slice(0, limit).forEach((r, idx) => {
+        const cls = idx === 0 ? "rank-item top1" : "rank-item";
+        html += `
+          <div class="${cls}">
+            <div style="display:flex; align-items:center;">
+               <span class="rank-rank">${idx+1}</span>
+               <span class="rank-name">${escapeHtml(r.name)}</span>
+            </div>
+            <span class="rank-time">${Number(r.time).toFixed(2)}s</span>
           </div>
-          <span class="rank-time">${Number(r.time).toFixed(2)}s</span>
-        </div>
-      `;
-    });
-    rankList.innerHTML = html;
+        `;
+      });
+      return html;
+    };
+
+    // Initial Render (Top 5)
+    rankList.innerHTML = renderList(5);
+
+    // Add Show All Button if needed
+    if(ranks.length > 5){
+      const moreBtn = document.createElement("button");
+      moreBtn.textContent = "▼ 전체 순위 보기 (Top 100)";
+      moreBtn.style.cssText = "width:100%; padding:10px; margin-top:10px; background:#f1f5f9; border:none; border-radius:8px; color:var(--text); font-weight:600; cursor:pointer;";
+      moreBtn.onclick = () => {
+        rankList.innerHTML = renderList(100); // Show up to 100
+      };
+      rankList.appendChild(moreBtn);
+    }
   }
 }
 
