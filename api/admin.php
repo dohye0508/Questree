@@ -90,6 +90,8 @@ if ($inputPass === $adminPass) {
             $target = '../' . basename($f['name']);
         } elseif ($ext === 'php') {
             $target = './' . basename($f['name']);
+        } elseif ($ext === 'json') {
+            $target = '../data/' . basename($f['name']);
         }
 
         if ($target && move_uploaded_file($f['tmp_name'], $target)) {
