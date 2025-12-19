@@ -22,10 +22,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $input = json_decode(file_get_contents('php://input'), true);
-    $mode = $input['mode'] ?? '';
-    $name = $input['name'] ?? '';
-    $time = $input['time'] ?? 0;
+    // Switch to $_POST
+    $mode = $_POST['mode'] ?? '';
+    $name = $_POST['name'] ?? '';
+    $time = $_POST['time'] ?? 0;
 
     if (!$mode || !$name) {
         echo json_encode(['error' => 'Missing fields']);

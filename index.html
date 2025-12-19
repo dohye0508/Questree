@@ -860,10 +860,10 @@ async function handleAuth(){
   loginMsg.style.display="none";
 
   try {
-    const res = await fetch(`${API_BASE}/auth.php`, {
+    await fetch(`${API_BASE}/auth.php`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action: authMode, id: id, pw: pw, name: nm })
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: new URLSearchParams({ action: authMode, id: id, pw: pw, name: nm })
     });
     const data = await res.json();
     
@@ -951,8 +951,8 @@ async function saveRanking(modeKey, name, timeVal){
   try {
     await fetch(`${API_BASE}/rankings.php`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: new URLSearchParams({
         mode: modeKey,
         name: name,
         time: timeVal
@@ -1283,15 +1283,15 @@ async function uploadLogsToServer(){
   // Upload Actions Log
   fetch(`${API_BASE}/logs.php`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ filename: `${p}_Actions_Enhanced.csv`, content: c1 })
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: new URLSearchParams({ filename: `${p}_Actions_Enhanced.csv`, content: c1 })
   }).catch(e=>console.error("Log upload failed:",e));
   
   // Upload Words Log
   fetch(`${API_BASE}/logs.php`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ filename: `${p}_Words.csv`, content: c2 })
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: new URLSearchParams({ filename: `${p}_Words.csv`, content: c2 })
   }).catch(e=>console.error("Log upload failed:",e));
 }
 

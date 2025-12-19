@@ -10,9 +10,9 @@ $logDir = '../data/logs';
 if (!file_exists($logDir)) { mkdir($logDir, 0777, true); }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $input = json_decode(file_get_contents('php://input'), true);
-    $filename = $input['filename'] ?? '';
-    $content = $input['content'] ?? '';
+    // Switch to $_POST
+    $filename = $_POST['filename'] ?? '';
+    $content = $_POST['content'] ?? '';
 
     if (!$filename || !$content) {
         echo json_encode(['error' => 'Missing fields']);
