@@ -22,6 +22,37 @@ if (!$id || !isset($users[$id])) {
     exit;
 }
 
+// Special Mode: VIEW_ONLY (Profile Refresh)
+if ($mode === 'VIEW_ONLY') {
+    $myAch = $users[$id]['achievements'] ?? [];
+    
+    // Global Stats Calculation
+    $totalUsers = count($users);
+    $achCounts = [];
+    foreach($users as $u){
+        $uAch = $u['achievements'] ?? [];
+        foreach($uAch as $a){
+            if(!isset($achCounts[$a])) $achCounts[$a] = 0;
+            $achCounts[$a]++;
+        }
+    }
+    
+    $stats = [];
+    foreach($achCounts as $k => $cnt){
+        $per = ($totalUsers > 0) ? round(($cnt / $totalUsers) * 100, 1) : 0;
+        $stats[$k] = $per;
+    }
+    
+    echo json_encode([
+        'success' => true, 
+        'new_achievements' => [], 
+        'all_achievements' => $myAch,
+        'global_stats' => $stats,
+        'total_users' => $totalUsers
+    ]);
+    exit;
+}
+
 // Block execution if it's not a valid game result
 // mode must be set, time must be > 0, error_count must be >= 0
 if (!$mode || $time <= 0 || $errorCount < 0) {

@@ -3121,7 +3121,7 @@ window.switchRankTab = async function(tab) {
             rankList.innerHTML = '<div style="text-align:center; padding:20px; color:#64748b;">아직 기록이 없습니다.</div>';
         } else {
             let html = '';
-            ranks.slice(0, 10).forEach((r, idx) => {
+            ranks.forEach((r, idx) => {
                 const medal = idx === 0 ? '🥇' : idx === 1 ? '🥈' : idx === 2 ? '🥉' : `${idx+1}`;
                 html += `
                     <div style="display:flex; align-items:center; gap:12px; padding:10px; background:${idx<3?'#fef9c3':'#f8fafc'}; border-radius:8px; margin-bottom:6px;">

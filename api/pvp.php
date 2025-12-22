@@ -530,8 +530,8 @@ switch($action) {
             return $rateB <=> $rateA;
         });
         
-        // Limit to top 20
-        $ranking = array_slice($ranking, 0, 20);
+        // Limit removed as requested
+        // $ranking = array_slice($ranking, 0, 20);
         
         echo json_encode(['success'=>true, 'ranking'=>$ranking]);
         break;
