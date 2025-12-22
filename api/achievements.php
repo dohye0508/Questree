@@ -13,11 +13,19 @@ $users = file_exists($userFile) ? json_decode(file_get_contents($userFile), true
 
 $id = trim($_POST['id'] ?? '');
 $mode = trim($_POST['mode'] ?? ''); // Easy, Normal, Hard, Extreme, or 10, 20...
-$time = floatval($_POST['time'] ?? 9999);
-$errorCount = intval($_POST['error_count'] ?? 0);
+$time = floatval($_POST['time'] ?? 0); // Default to 0 instead of 9999 for safer validation
+$errorCount = intval($_POST['error_count'] ?? -1); // Default to -1 so '0' (perfect game) must be explicit
 
+// Validate required game data
 if (!$id || !isset($users[$id])) {
     echo json_encode(['success' => false, 'message' => 'User not found']);
+    exit;
+}
+
+// Block execution if it's not a valid game result
+// mode must be set, time must be > 0, error_count must be >= 0
+if (!$mode || $time <= 0 || $errorCount < 0) {
+    echo json_encode(['success' => false, 'message' => 'Invalid game data']);
     exit;
 }
 
@@ -69,7 +77,7 @@ if($errorCount === 0 && !in_array('god_hand', $myAch)){
 
 // 4. Persistence (Took long but finished)
 // Criteria: Easy > 30s, Normal > 120s, Hard > 300s, Extreme > 1200s
-$slowLimit = 0;
+$slowLimit = 999999; // Default impossible to prevent instant unlock on mode error
 if($modeCode === 'easy') $slowLimit = 60;
 elseif($modeCode === 'normal') $slowLimit = 300;
 elseif($modeCode === 'hard') $slowLimit = 500;
@@ -163,7 +171,7 @@ if($pvpWins >= 50 && !in_array('pvp_50_wins', $myAch)){
 // 5 Win Streak
 $maxStreak = $pvpStats['max_streak'] ?? 0;
 if($maxStreak >= 5 && !in_array('pvp_5_streak', $myAch)){
-    $newUnlocked[] = ['id' => 'pvp_5_streak', 'icon' => '🔥', 'name' => '불패', 'desc' => 'PVP 5연승 달성!'];
+    $newUnlocked[] = ['id' => 'pvp_5_streak', 'icon' => '🛡️', 'name' => '불패', 'desc' => 'PVP 5연승 달성!'];
     $myAch[] = 'pvp_5_streak';
 }
 
