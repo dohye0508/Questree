@@ -1736,8 +1736,7 @@ async function uploadLogsToServer(){
   // Add timestamp to prevent overwriting
   const now = new Date();
   const timeStr = String(now.getHours()).padStart(2, '0') + String(now.getMinutes()).padStart(2, '0') + String(now.getSeconds()).padStart(2, '0');
-  const isPvp = (typeof pvpMode !== 'undefined' && pvpMode);
-  const p = `sorted_exp_${userInfo.id}_${userInfo.name}_${timeStr}${isPvp ? '_PVP' : ''}`;
+  const p = `sorted_exp_${userInfo.id}_${userInfo.name}_${timeStr}`;
   
   // Upload Actions Log
   fetch(`${API_BASE}/logs.php`, {
@@ -1829,8 +1828,6 @@ function generateLogContent(){
 
 function resetAll(){
   started=false; finished=false; stopScrollLoop(); clearInterval(timerId);
-  window.isResultRecorded = false; // Reset duplicate prevention flag
-  if(typeof pvpResultPollInterval !== 'undefined' && pvpResultPollInterval) clearInterval(pvpResultPollInterval);
   if(sortableInst) sortableInst.destroy(); sortableInst=null;
   document.querySelectorAll(".timer-display").forEach(el=>el.textContent="0.00");
   setStatus("대기"); gaugeBarEl.style.width="0%"; 
@@ -1886,7 +1883,7 @@ function updateMyPageUI(myCodes, stats){
         { id: 'pvp_first_win', icon: '🥊', 'name': '첫 승리', 'desc': 'PVP 첫 승리' },
         { id: 'pvp_10_wins', icon: '🎖️', 'name': 'PVP 마스터', 'desc': 'PVP 10승 달성' },
         { id: 'pvp_50_wins', icon: '💀', 'name': 'PVP 전설', 'desc': 'PVP 50승 달성' },
-        { id: 'pvp_5_streak', icon: '🛡️', 'name': '불패', 'desc': 'PVP 5연승' },
+        { id: 'pvp_5_streak', icon: '🔥', 'name': '불패', 'desc': 'PVP 5연승' },
         { id: 'secret_master', icon: '❓', 'name': '???', 'desc': '???', unlockedIcon: '🔱', unlockedName: '신', unlockedDesc: '모든 업적 달성' },
     ];
 
@@ -2043,12 +2040,9 @@ const ACHIEVEMENT_AVATARS = [
     { emoji: '🔥', achId: 'slow_steady', name: '불굴의 의지' },
     { emoji: '🏆', achId: 'ranker', name: '명예의 전당' },
     { emoji: '🐐', achId: 'goat', name: 'GOAT' },
+    { emoji: '🍀', achId: 'lucky_seven', name: '럭키세븐' },
     { emoji: '⚔️', achId: 'veteran_10', name: '전장의 지배자' },
     { emoji: '☠️', achId: 'real_man', name: '남자중의 남자' },
-    { emoji: '🥊', achId: 'pvp_first_win', name: '첫 승리' },
-    { emoji: '🎖️', achId: 'pvp_10_wins', name: 'PVP 마스터' },
-    { emoji: '💀', achId: 'pvp_50_wins', name: 'PVP 전설' },
-    { emoji: '🛡️', achId: 'pvp_5_streak', name: '불패' },
     { emoji: '🔱', achId: 'secret_master', name: '신', lockedEmoji: '❓', lockedName: '???' },
 ];
 
@@ -2311,16 +2305,6 @@ function startPvpPolling(){
             });
             const data = await res.json();
             if(!data.success) return;
-            
-            // Update Host Status
-            if(data.room && data.room.host_id === userInfo.id) {
-                if(!pvpIsHost) {
-                    pvpIsHost = true;
-                    // Ensure start button visibility for new host
-                    const startBtn = document.getElementById('pvpStartBtn');
-                    if(startBtn) startBtn.style.display = 'block';
-                }
-            }
             
             // Update player list
             const listHtml = data.players.map((p, i) => 
@@ -2735,25 +2719,16 @@ function showMultiplayerResult(players){
         const pFinished = p.finish_time !== null && p.finish_time < 9999;
         const pPlaying = p.finish_time === null;
         
-        let timeDisplay = '';
+        let timeDisplay = '진행중';
         if(pForfeited) {
             timeDisplay = '🏳️기권';
         } else if(pFinished) {
             timeDisplay = p.finish_time + '초';
-        } else if(pPlaying) {
-            // Game has ended but this player didn't finish
-            // In 1v1: if opponent forfeited, show 승리
-            // In multiplayer: show 실패
-            if(sorted.length === 2) {
-                const otherPlayer = sorted.find(op => op.id !== p.id);
-                if(otherPlayer && otherPlayer.finish_time >= 9999) {
-                    timeDisplay = '🏆승리';
-                } else {
-                    timeDisplay = '❌실패';
-                }
-            } else {
-                // Multiplayer - player didn't finish, game ended
-                timeDisplay = '❌실패';
+        } else if(pPlaying && sorted.length === 2) {
+            // In 1v1, if they're still playing but game ended, they won
+            const otherPlayer = sorted.find(op => op.id !== p.id);
+            if(otherPlayer && otherPlayer.finish_time >= 9999) {
+                timeDisplay = '🏆승리';
             }
         }
         
@@ -2769,7 +2744,7 @@ function showMultiplayerResult(players){
     }).join('');
     
     document.getElementById('finishModal').classList.remove('hidden');
-    document.getElementById('finishMessage').innerHTML = `${resultText}<div id="pvpRankList" style="margin-top:16px; text-align:left; font-size:14px;">${rankHtml}</div>`;
+    document.getElementById('finishMessage').innerHTML = `${resultText}<div style="margin-top:16px; text-align:left; font-size:14px;">${rankHtml}</div>`;
     
     // Show close button as Return to PVP
     if(finishCloseBtn) {
@@ -2783,26 +2758,8 @@ function showMultiplayerResult(players){
     const modeLabelsResult = {'10':'하남자','20':'중남자','40':'상남자','80':'씹상남자'};
     document.getElementById('finishDifficultyVal').textContent = modeLabelsResult[String(N)] || N + '개';
     
-    // Start result polling to update other players' records
-    if(pvpResultPollInterval) clearInterval(pvpResultPollInterval);
-    pvpResultPollInterval = setInterval(async () => {
-        if(!pvpRoomCode) { clearInterval(pvpResultPollInterval); return; }
-        try {
-            const res = await fetch(`${API_BASE}/pvp.php`, {
-                method: 'POST',
-                headers: {'Content-Type':'application/x-www-form-urlencoded'},
-                body: new URLSearchParams({action:'status', room_code:pvpRoomCode, player_id:userInfo.id})
-            });
-            const data = await res.json();
-            if(data.success && data.players) {
-                updateResultRanking(data.players);
-            }
-        } catch(e) {}
-    }, 2000);
-    
     // Record PVP result to server
-    if(typeof isWinner !== 'undefined' && !window.isResultRecorded) {
-        window.isResultRecorded = true;
+    if(typeof isWinner !== 'undefined') {
         const result = isWinner ? 'win' : 'loss';
         fetch(`${API_BASE}/pvp.php`, {
             method: 'POST',
@@ -2818,48 +2775,7 @@ function showMultiplayerResult(players){
     }
 }
 
-let pvpResultPollInterval = null;
-
-function updateResultRanking(players) {
-    const rankListEl = document.getElementById('pvpRankList');
-    if(!rankListEl) return;
-    
-    const sorted = [...players].sort((a,b) => {
-        let tA = (a.finish_time === null || a.finish_time >= 9999) ? Infinity : a.finish_time;
-        let tB = (b.finish_time === null || b.finish_time >= 9999) ? Infinity : b.finish_time;
-        return tA - tB;
-    });
-    
-    let rankHtml = sorted.map((p, i) => {
-        const pForfeited = p.finish_time !== null && p.finish_time >= 9999;
-        const pFinished = p.finish_time !== null && p.finish_time < 9999;
-        const pPlaying = p.finish_time === null;
-        
-        let timeDisplay = '';
-        if(pForfeited) {
-            timeDisplay = '🏳️기권';
-        } else if(pFinished) {
-            timeDisplay = p.finish_time + '초';
-        } else if(pPlaying) {
-            timeDisplay = '⏳진행중';
-        }
-        
-        let rankText = (i+1)+'등';
-        if(i===0) rankText = '🥇';
-        if(i===1) rankText = '🥈';
-        if(i===2) rankText = '🥉';
-        
-        return `<div style="display:flex; justify-content:space-between; padding:8px; ${p.id === userInfo.id ? 'background:#f0f9ff; border-radius:6px;' : ''}">
-            <span>${rankText} ${p.name}</span>
-            <span style="font-weight:600;">${timeDisplay}</span>
-        </div>`;
-    }).join('');
-    
-    rankListEl.innerHTML = rankHtml;
-}
-
 window.returnToPvpRoom = async function(){
-    if(pvpResultPollInterval) clearInterval(pvpResultPollInterval);
     document.getElementById('finishModal').classList.add('hidden');
     stopHeartbeat();
     
@@ -3121,7 +3037,7 @@ window.switchRankTab = async function(tab) {
             rankList.innerHTML = '<div style="text-align:center; padding:20px; color:#64748b;">아직 기록이 없습니다.</div>';
         } else {
             let html = '';
-            ranks.forEach((r, idx) => {
+            ranks.slice(0, 10).forEach((r, idx) => {
                 const medal = idx === 0 ? '🥇' : idx === 1 ? '🥈' : idx === 2 ? '🥉' : `${idx+1}`;
                 html += `
                     <div style="display:flex; align-items:center; gap:12px; padding:10px; background:${idx<3?'#fef9c3':'#f8fafc'}; border-radius:8px; margin-bottom:6px;">
