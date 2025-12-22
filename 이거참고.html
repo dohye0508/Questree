@@ -1,0 +1,1781 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<title>정렬 색인 실험</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<!-- 프리텐다드 폰트 (CDN) -->
+<link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard-dynamic-subset.css" />
+
+<style>
+:root{
+  --bg: #F8FAFC;
+  --card: #ffffff;
+  --text: #1e293b; 
+  --muted: #64748b;
+  --border: #e2e8f0;
+  
+  --primary: #10B981;
+  --primary-dark: #059669;
+  --primary-light: #34D399;
+  --accent: #d1fae5;
+  
+  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  --shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+  --shadow-lg: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+  
+  --radius: 16px;
+  --radius-sm: 8px;
+}
+
+*{ box-sizing:border-box; }
+html, body{ height:100%; }
+
+body{
+  margin:0;
+  padding:20px;
+  background: var(--bg);
+  font-family: "Pretendard", -apple-system, BlinkMacSystemFont, system-ui, Roboto, sans-serif;
+  color: var(--text);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+}
+
+/* 배경 장식 */
+body::before {
+  content:"";
+  position: fixed;
+  top: -50%; left: -50%;
+  width: 200%; height: 200%;
+  background: 
+    radial-gradient(circle at 50% 50%, rgba(16, 185, 129, 0.03), transparent 60%),
+    radial-gradient(circle at 80% 20%, rgba(52, 211, 153, 0.04), transparent 50%);
+  z-index: -1;
+  pointer-events: none;
+}
+
+.card{
+  width: 100%;
+  height: auto;
+  background: var(--card);
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  box-shadow: var(--shadow-lg);
+  transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@media (min-width: 1024px) {
+  body { padding: 40px 20px; overflow: auto; align-items: center; }
+  .card {
+    max-width: 800px;
+    height: auto;
+    min-height: 600px;
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
+    transform: scale(1.2);
+    transform-origin: center;
+  }
+  
+  /* 게임 진행 중 카드 크기 축소 (데스크탑만) */
+  .card.game-active {
+    transform: scale(0.8);
+    transform-origin: top center;
+  }
+}
+
+/* 게임 활성화 시 상단 정렬 및 적절한 여백 */
+body:has(.card.game-active) {
+  align-items: flex-start;
+  padding: 16px 0;
+}
+
+/* 헤더 영역 */
+.header{
+  padding: 16px;
+  background: white;
+  border-bottom: 1px solid var(--border);
+  border-radius: var(--radius) var(--radius) 0 0;
+  flex-shrink: 0;
+}
+
+@media (min-width: 1024px) {
+  .header { padding: 24px; }
+}
+
+
+
+.headerTop{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:8px; /* 간격 축소 (16px -> 8px) */
+  margin-bottom: 16px;
+  min-height: 48px; 
+}
+
+.titleBox{ display:flex; flex-direction:column; gap:4px; flex-shrink: 1; min-width: 0; }
+.title{ 
+  font-weight: 800; 
+  font-size: 19px; /* 소폭 축소 */
+  color: var(--text);
+  letter-spacing: -0.02em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+@media (min-width: 1024px) {
+  .title { font-size: 24px; }
+}
+.sub{ 
+  font-size: 14px; 
+  color: var(--muted); 
+  font-weight: 500;
+}
+
+/* 랭킹 버튼 (대기 중 표시) */
+.ranking-btn-area {
+  display: none; /* Default hidden */
+  gap: 10px;
+  margin-top: 20px;
+}
+.ranking-btn-area.active {
+  display: flex !important; /* Show only when active */
+}
+
+.rank-open-btn {
+  background: white;
+  border: 1px solid var(--border);
+  color: var(--text);
+  padding: 8px 12px; /* 패딩 축소 */
+  border-radius: 999px;
+  font-size: 13px; /* 소폭 축소 */
+  font-weight: 700;
+  flex-shrink: 0; /* 버튼이 찌그러지지 않게 */
+  white-space: nowrap;
+  box-shadow: var(--shadow-sm);
+  display: flex; align-items: center; gap: 6px;
+  transition: all 0.2s;
+}
+.rank-open-btn:hover {
+  background: #f8fafc;
+  transform: translateY(-2px);
+  box-shadow: var(--shadow);
+  color: var(--primary-dark);
+  border-color: var(--primary-light);
+}
+
+/* 게임 상태 (진행 중에만 표시) */
+.game-status-panel {
+  display: none; /* JS Toggle */
+  flex-direction: column;
+  gap: 16px;
+  width: 100%;
+}
+.game-status-panel.active { display: flex; }
+
+.statusGroup{
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+.badge{
+  font-size: 13px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  background: var(--bg);
+  color: var(--muted);
+  border: 1px solid var(--border);
+}
+.badge.run{ background: #ecfdf5; color: #047857; border-color: #a7f3d0; }
+.badge.done{ background: #f0fdf4; color: #15803d; border-color: #bbf7d0; }
+
+.timerBadge{
+  font-family: "Pretendard", monospace; 
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--primary-dark);
+}
+
+/* 진행도 Bar */
+.progress-area {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.progress-label {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muted);
+}
+.gaugeWrap{
+  height: 8px;
+  border-radius: 999px;
+  background: #f1f5f9;
+  overflow:hidden;
+}
+.gaugeBar{
+  height: 100%;
+  width: 0%;
+  background: linear-gradient(90deg, var(--primary-light), var(--primary));
+  transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 0 10px rgba(16, 185, 129, 0.3);
+}
+
+/* 
+  [Desktop HUD] 
+  데스크탑에서 화면 상단에 고정되는 미니 상태바
+  - 스크롤과 무관하게 '게임 중'이면 항상 표시
+*/
+.hud-pill {
+  position: fixed;
+  top: 14px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: none; 
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  padding: 8px 18px;
+  border-radius: 999px;
+  box-shadow: 0 8px 25px rgba(0,0,0,0.12);
+  z-index: 10001;
+  border: 1px solid var(--border);
+  align-items: center;
+  gap: 12px;
+  transition: opacity 0.3s, transform 0.3s;
+  white-space: nowrap;
+  width: max-content;
+  max-width: 95vw;
+  flex-wrap: nowrap;
+}
+.hud-pill.visible {
+  display: flex;
+}
+
+.hud-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+  user-select: none;
+}
+.hud-val {
+  font-family: "Pretendard", monospace;
+  color: var(--primary-dark);
+  font-weight: 700;
+  font-size: 16px;
+  min-width: 45px; 
+  text-align: right;
+}
+.hud-sep {
+  width: 1px; height: 14px; background: var(--border);
+}
+
+/* HUD Toggle Switch */
+.hud-toggle-container {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--muted);
+  white-space: nowrap;
+}
+.switch {
+  position: relative;
+  display: inline-block;
+  width: 34px;
+  height: 20px;
+}
+.switch input { opacity: 0; width: 0; height: 0; }
+.slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background-color: #e2e8f0;
+  transition: .3s;
+  border-radius: 34px;
+}
+.slider:before {
+  position: absolute;
+  content: "";
+  height: 14px; width: 14px;
+  left: 3px; bottom: 3px;
+  background-color: white;
+  transition: .3s;
+  border-radius: 50%;
+}
+input:checked + .slider { background-color: var(--primary); }
+input:checked + .slider:before { transform: translateX(14px); }
+
+
+/* 컨트롤 영역 */
+.controls{
+  padding: 16px 24px;
+  display:flex;
+  gap:12px;
+  flex-wrap:wrap;
+  align-items:center;
+  background: #f8fafc;
+  border-bottom: 1px solid var(--border);
+  transition: opacity 0.3s, max-height 0.3s;
+  max-height: 200px;
+  overflow: hidden;
+}
+
+/* 게임 진행 중 controls 숨기기 */
+.card.game-active .controls {
+  opacity: 0;
+  max-height: 0;
+  padding: 0;
+  border: none;
+}
+
+/* 플로팅 초기화 버튼 */
+.floating-reset-btn {
+  position: fixed;
+  bottom: 30px;
+  right: 30px;
+  z-index: 10000;
+  box-shadow: 0 8px 20px rgba(0,0,0,0.2);
+  font-size: 15px;
+  padding: 12px 24px;
+}
+.floating-reset-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 30px rgba(0,0,0,0.3);
+}
+
+/* 플로팅 로그 다운로드 버튼 */
+.floating-log-btn {
+  position: fixed;
+  bottom: 90px;
+  right: 30px;
+  z-index: 10000;
+  box-shadow: 0 8px 20px rgba(37, 99, 235, 0.3);
+  font-size: 15px;
+  padding: 12px 24px;
+}
+.floating-log-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 30px rgba(37, 99, 235, 0.4);
+}
+
+.select-wrapper { position: relative; }
+select{
+  appearance: none;
+  background: white;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 10px 32px 10px 14px;
+  font-family: inherit;
+  font-weight: 600;
+  font-size: 14px;
+  color: var(--text);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+select:hover { border-color: var(--primary); }
+select:focus { outline:none; border-color: var(--primary); box-shadow: 0 0 0 3px var(--accent); }
+.select-caret {
+  position: absolute; right: 12px; top: 50%; transform: translateY(-50%);
+  pointer-events: none; font-size: 10px; color: var(--muted);
+}
+
+button{
+  border: none;
+  border-radius: var(--radius-sm);
+  padding: 10px 18px;
+  font-family: inherit;
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+button.primary{ background: var(--primary); color: white; box-shadow: 0 4px 6px -1px rgba(16, 185, 129, 0.3); }
+button.primary:hover { background: var(--primary-dark); transform: translateY(-1px); }
+button.primary:active { transform: translateY(0); }
+button.secondary{ background: white; border: 1px solid var(--border); color: var(--text); }
+button.secondary:hover { background: #f1f5f9; border-color: #cbd5e1; }
+button:disabled{ opacity: 0.5; cursor: not-allowed; transform: none !important; box-shadow: none !important; }
+
+/* 메인 컨텐츠 */
+.contentArea {
+  overflow-y: auto;
+  position: relative;
+  background: #f8fafc; 
+}
+
+/* 데스크탑에서만 flex: 1 적용 */
+@media (min-width: 1024px) {
+  .contentArea {
+    flex: 1;
+  }
+}
+
+.memo{
+  margin: 16px;
+  max-width: 600px;
+  padding: 20px;
+  background: white;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-sm);
+  color: var(--text);
+  line-height: 1.7;
+  font-size: 15px;
+}
+
+@media (min-width: 1024px) {
+  .memo { margin: 30px auto; padding: 30px; }
+}
+.memo p { margin: 0 0 12px 0; }
+.memo strong { color: var(--primary-dark); }
+
+.listWrap{ padding: 12px; max-width: 700px; margin: 0 auto; }
+
+@media (min-width: 1024px) {
+  .listWrap { padding: 20px; }
+}
+.list{ display:grid; gap: 10px; }
+
+.item{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 14px 18px;
+  background: white;
+  box-shadow: var(--shadow-sm);
+  user-select:none;
+  cursor: grab;
+  touch-action: none;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+.item:hover { transform: translateY(-2px); box-shadow: var(--shadow); border-color: var(--primary-light); }
+.item:active{ cursor: grabbing; transform: scale(0.98); }
+
+.label{ font-size: 17px; font-weight: 700; color: var(--text); }
+.handle{ font-size: 12px; color: var(--muted); background: #f1f5f9; padding: 6px 10px; border-radius: 6px; font-weight: 600; }
+
+.sortable-ghost{ opacity: 0.6; background: var(--accent); border: 2px dashed var(--primary); }
+.sortable-chosen{ background: white; box-shadow: var(--shadow-lg); }
+
+/* 하단 저작권 표시 */
+.footer {
+  text-align: center;
+  padding: 10px;
+  font-size: 11px;
+  color: var(--muted);
+  background: white; /* or #f8fafc */
+  border-top: 1px solid var(--border);
+  border-radius: 0 0 var(--radius) var(--radius);
+  font-weight: 500;
+  opacity: 0.7;
+}
+
+/* 모달 공통 */
+.modalOverlay {
+  position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+  background: rgba(15, 23, 42, 0.4); backdrop-filter: blur(8px);
+  z-index: 99999;
+  display: flex; align-items: center; justify-content: center; padding: 20px;
+}
+.modalCard {
+  background: white; width: 100%; max-width: 400px; padding: 32px;
+  border-radius: 24px; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+  text-align: center; animation: slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  position: relative;
+}
+.modalCloseBtn {
+  position: absolute; top: 16px; right: 16px;
+  background: #f1f5f9; border: none; font-size: 18px; line-height: 1;
+  width: 32px; height: 32px; border-radius: 50%; color: var(--muted); cursor: pointer;
+  display: flex; align-items: center; justify-content: center; transition: 0.2s;
+}
+.modalCloseBtn:hover { background: #e2e8f0; color: var(--text); }
+
+@keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+
+.loginTitle { font-size: 22px; font-weight: 800; margin-bottom: 8px; color: var(--text); }
+.loginDesc { font-size: 14px; color: var(--muted); margin-bottom: 24px; }
+.inputGroup { margin-bottom: 16px; text-align: left; }
+.inputLabel { display: block; font-size: 13px; font-weight: 700; color: var(--muted); margin-bottom: 6px; }
+.inputField {
+  width: 100%; padding: 12px 14px; border: 1px solid var(--border);
+  border-radius: 12px; font-size: 16px; font-family: inherit; transition: 0.2s;
+}
+.inputField:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px var(--accent); }
+.loginBtn { width: 100%; justify-content: center; margin-top: 10px; padding: 14px; font-size: 16px; }
+.hidden { display: none !important; }
+
+/* 랭킹 모달 컨텐츠 */
+.rank-list-modal {
+  display: flex; flex-direction: column; gap: 8px; margin-top: 16px; margin-bottom: 16px;
+}
+.rank-item {
+  display: flex; align-items: center; justify-content: space-between;
+  font-size: 14px; color: var(--text); padding: 10px 14px;
+  background: white; border-radius: 12px; border: 1px solid var(--border);
+}
+.rank-item.top1 { border-color: #fbbf24; background: #fffbeb; }
+.rank-rank { width: 24px; font-weight: 800; color: var(--muted); }
+.rank-item.top1 .rank-rank { color: #d97706; }
+.rank-name { flex: 1; font-weight: 600; text-align: left; margin-left: 8px; }
+.rank-time { font-family: monospace; font-weight: 700; color: var(--primary-dark); }
+.rank-empty { font-size: 13px; color: var(--muted); padding: 20px; }
+
+/* 토스트 */
+.toast-msg {
+  position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%);
+  background: rgba(30, 41, 59, 0.9); color: white; padding: 10px 20px;
+  border-radius: 30px; font-size: 14px; font-weight: 500; pointer-events: none;
+  opacity: 0; transition: opacity 0.3s;
+}
+.toast-msg.show { opacity: 1; }
+
+/* 업적 달성 팝업 */
+.achievement-popup {
+  position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.6); z-index: 20000;
+  display: flex; align-items: center; justify-content: center;
+  opacity: 0; pointer-events: none; transition: opacity 0.3s;
+}
+.achievement-popup.show { opacity: 1; pointer-events: auto; }
+.achievement-card {
+  background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+  border: 3px solid #f59e0b; border-radius: 24px;
+  padding: 32px 48px; text-align: center;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.3), 0 0 40px rgba(245,158,11,0.4);
+  animation: achievePop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+  max-width: 90vw;
+}
+@keyframes achievePop {
+  0% { transform: scale(0.5) rotate(-5deg); opacity: 0; }
+  100% { transform: scale(1) rotate(0); opacity: 1; }
+}
+.achievement-icon { font-size: 64px; margin-bottom: 12px; }
+.achievement-title { font-size: 14px; color: #92400e; font-weight: 600; margin-bottom: 4px; }
+.achievement-name { font-size: 28px; font-weight: 900; color: #78350f; margin-bottom: 8px; }
+.achievement-desc { font-size: 14px; color: #a16207; }
+
+/* 아바타 선택 옵션 */
+.avatar-option {
+  font-size: 28px; cursor: pointer; padding: 6px;
+  border-radius: 8px; transition: 0.2s;
+}
+.avatar-option:hover { background: #e0f2fe; transform: scale(1.2); }
+.avatar-option.locked { 
+  opacity: 0.3; filter: grayscale(100%); cursor: not-allowed;
+}
+.avatar-option.locked:hover { background: none; transform: none; }
+
+/* 완료 모달 전용 스타일 */
+.finish-title { font-size: 28px; font-weight: 900; color: var(--primary-dark); margin-bottom: 12px; }
+.finish-message { font-size: 18px; font-weight: 700; color: var(--text); margin-bottom: 24px; line-height: 1.5; }
+.finish-stats { 
+  background: #f8fafc; border: 1px solid var(--border); border-radius: 16px; 
+  padding: 16px; margin-bottom: 24px; display: grid; grid-template-columns: 1fr 1fr; gap: 12px;
+}
+.stat-item { display: flex; flex-direction: column; gap: 4px; }
+.stat-label { font-size: 12px; color: var(--muted); font-weight: 600; }
+.stat-value { font-size: 18px; font-weight: 800; color: var(--primary-dark); font-family: monospace; }
+</style>
+
+</head>
+
+<body>
+
+<!-- 로그인 모달 -->
+<div class="modalOverlay" id="loginModal">
+  <div class="modalCard">
+    <div class="loginTitle">실험 참가자 정보</div>
+    <div class="loginDesc">데이터 수집을 위해 정보를 입력해주세요.</div>
+    
+    <!-- 탭 버튼 -->
+    <div style="display:flex; gap:10px; margin-bottom:20px; border-bottom:1px solid var(--border);">
+      <button id="tabLogin" class="tab-btn active" style="flex:1; padding:10px; background:none; border:none; border-bottom:2px solid var(--primary); font-weight:700; color:var(--text);">로그인</button>
+      <button id="tabRegister" class="tab-btn" style="flex:1; padding:10px; background:none; border:none; border-bottom:2px solid transparent; font-weight:600; color:var(--muted);">회원가입</button>
+    </div>
+
+    <div class="inputGroup">
+      <label class="inputLabel">아이디</label>
+      <input type="text" id="inputId" class="inputField" placeholder="ID 입력" autofocus>
+    </div>
+    <div class="inputGroup">
+      <label class="inputLabel">비밀번호</label>
+      <input type="password" id="inputPw" class="inputField" placeholder="비밀번호 입력">
+    </div>
+    <div class="inputGroup" id="nameGroup" style="display:none;">
+      <label class="inputLabel">이름 (닉네임)</label>
+      <input type="text" id="inputName" class="inputField" placeholder="랭킹에 표시될 이름">
+    </div>
+    
+    <div id="loginMsg" style="color:#ef4444; font-size:13px; margin-bottom:10px; display:none;"></div>
+
+    <button class="primary loginBtn" id="authActionBtn">로그인</button>
+  </div>
+</div>
+
+<!-- 랭킹 모달 (NEW) -->
+<div class="modalOverlay hidden" id="rankingModal">
+  <div class="modalCard">
+    <button class="modalCloseBtn" id="rankingCloseBtn">✕</button>
+    <div class="loginTitle">🏆 명예의 전당</div>
+    <div class="loginDesc" id="rankingModalSubtitle">Best Records</div>
+    
+    <div class="rank-list-modal" id="rankList">
+      <!-- JS로 채워짐 -->
+    </div>
+    
+    <button class="secondary loginBtn" id="rankingOkBtn">닫기</button>
+  </div>
+</div>
+
+<!-- 마이페이지 모달 (NEW) -->
+<div class="modalOverlay hidden" id="myPageModal">
+  <div class="modalCard" style="max-width: 600px; text-align:left;">
+    <button class="modalCloseBtn" onclick="document.getElementById('myPageModal').classList.add('hidden')">✕</button>
+    
+    <div style="display:flex; align-items:center; gap:15px; margin-bottom:20px; border-bottom:1px solid #e2e8f0; padding-bottom:20px;">
+        <div id="profileAvatar" onclick="showAvatarPicker()" style="width:60px; height:60px; background:#e0f2fe; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:30px; cursor:pointer; transition:0.2s; position:relative;" title="클릭하여 아바타 변경">🧑‍💻
+            <div style="position:absolute; bottom:-2px; right:-2px; background:#f1f5f9; font-size:10px; width:18px; height:18px; border-radius:4px; display:flex; align-items:center; justify-content:center;">✏️</div>
+        </div>
+        <div>
+            <div style="display:flex; align-items:center; gap:8px;">
+                <span style="font-size:20px; font-weight:800; color:#0f172a;" id="myNameDisplay">User</span>
+                <button onclick="enableNameEdit()" style="font-size:12px; padding:2px 6px; background:#f1f5f9; border:none; border-radius:4px; cursor:pointer;" title="이름 변경">✏️</button>
+            </div>
+            <div id="nameEditForm" class="hidden" style="margin-top:5px; gap:5px;">
+                <input type="text" id="newNameInput" style="padding:4px; border:1px solid #cbd5e1; border-radius:4px; font-size:14px; width:100px;">
+                <button onclick="saveNewName()" style="padding:4px 8px; background:#3b82f6; color:white; border:none; border-radius:4px; font-size:12px; cursor:pointer;">저장</button>
+            </div>
+            <div style="font-size:14px; color:#64748b;" id="myIdDisplay">ID: test</div>
+        </div>
+        <div style="margin-left:auto;">
+            <button onclick="logout()" style="padding:8px 16px; background:#ef4444; color:white; border:none; border-radius:8px; font-size:12px; font-weight:600; cursor:pointer;">로그아웃</button>
+        </div>
+    </div>
+    
+    <!-- 아바타 선택 영역 (동적으로 채워짐) -->
+    <div id="avatarPicker" style="display:none; margin-bottom:15px; padding:12px; background:#f8fafc; border-radius:12px; border:1px solid #e2e8f0; max-height:180px; overflow-y:auto;">
+        <div style="font-size:12px; color:#64748b; margin-bottom:8px;">🎭 기본 아바타</div>
+        <div id="baseAvatars" style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:10px;"></div>
+        <div style="font-size:12px; color:#64748b; margin-bottom:8px;">🏆 업적 아바타 <span style="font-size:10px;">(업적 달성 시 해금)</span></div>
+        <div id="achievementAvatars" style="display:flex; gap:8px; flex-wrap:wrap;"></div>
+    </div>
+
+    <div style="font-size:16px; font-weight:800; margin-bottom:15px; ">🎖️ 획득한 업적</div>
+    <div id="myAchList" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap:10px; max-height:250px; overflow-y:auto;">
+        <!-- JS채움 -->
+    </div>
+  </div>
+</div>
+
+<!-- 완료 축하 모달 (NEW) -->
+<div class="modalOverlay hidden" id="finishModal">
+  <div class="modalCard" style="max-width: 450px;">
+    <div class="finish-title">🎉 정렬 완료!</div>
+    <div class="finish-message" id="finishMessage">축하합니다!</div>
+    
+    <div class="finish-stats">
+      <div class="stat-item">
+        <span class="stat-label">소요 시간</span>
+        <span class="stat-value" id="finishTimeVal">0.00s</span>
+      </div>
+      <div class="stat-item">
+        <span class="stat-label">난이도</span>
+        <span class="stat-value" id="finishDifficultyVal">-</span>
+      </div>
+    </div>
+    
+    <button class="primary loginBtn" id="finishCloseBtn" style="font-size: 18px; padding: 16px;">확인</button>
+  </div>
+</div>
+
+
+<!-- Desktop HUD -->
+<div class="hud-pill" id="desktopHud">
+  <div class="hud-item">
+    <span>⏳ 시간</span>
+    <span class="hud-val timer-display">0.00</span>
+  </div>
+  <div class="hud-sep"></div>
+  <div class="hud-item">
+    <span>📊 진행도</span>
+    <span class="hud-val progress-text-display">0%</span>
+  </div>
+</div>
+
+<div class="card">
+  <!-- 헤더 -->
+  <div class="header">
+
+    <div class="headerTop">
+      <div class="titleBox">
+        <div class="title">정렬 색인 실험</div>
+        <div class="sub">단어를 가나다순으로 빠르게 정렬하세요</div>
+      </div>
+      
+      <!-- [1] 메인 버튼 영역 (대기 중 표시) -->
+      <div class="ranking-btn-area active" id="rankingBtnArea">
+        <button id="showRankingBtn" class="rank-open-btn" style="flex:1;">
+           <span>🏆 랭킹 보기</span>
+        </button>
+        <button id="myPageBtnMain" class="rank-open-btn" style="flex:1;">
+           <span>⭐ 업적 보기</span>
+        </button>
+      </div>
+
+      <!-- [2] 게임 중 상태 패널 (타이머/진행도) -->
+      <div class="game-status-panel" id="gameStatusPanel">
+        <div class="statusGroup">
+          <div id="status" class="badge">진행 중</div>
+          <div id="timer" class="timerBadge timer-display">0.00</div>
+        </div>
+        <div class="progress-area">
+          <div class="progress-label">
+            <span>진행도</span>
+            <span id="progressText" class="progress-text-display">0%</span>
+          </div>
+          <div class="gaugeWrap" aria-label="진행도">
+            <div id="gaugeBar" class="gaugeBar"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 컨트롤 -->
+  <div class="controls" id="controlsArea">
+    <div class="select-wrapper">
+      <select id="sizeSel">
+        <option value="10" selected>하남자 (10개)</option>
+        <option value="20">중남자 (20개)</option>
+        <option value="40">상남자 (40개)</option>
+        <option value="80">씹상남자 (80개)</option>
+      </select>
+      <div class="select-caret">▼</div>
+    </div>
+
+    <div style="flex: 1;"></div> <!-- 공간 확보용 -->
+
+    <div class="hud-toggle-container">
+      <span>상단 HUD</span>
+      <label class="switch">
+        <input type="checkbox" id="hudToggle" checked>
+        <span class="slider"></span>
+      </label>
+    </div>
+
+    <button class="primary" id="startBtn"><span>▶</span> 실험 시작</button>
+  </div>
+
+  <!-- 컨텐츠 영역 -->
+  <div class="contentArea">
+    <div class="memo" id="memoBox">
+      <p><strong>안녕하세요, 실험에 참여해 주셔서 감사합니다.</strong></p>
+      <p>이 웹사이트는 사람이 데이터를 정렬할 때 소요되는 시간과 패턴을 분석하기 위해 제작되었습니다.</p>
+      <p>
+        1. <strong>[실험 시작]</strong> 버튼을 누르면 단어들이 무작위로 나타납니다.<br>
+        2. 드래그 앤 드롭을 이용해 <strong>가나다순</strong>으로 정렬해주세요.<br>
+        3. <strong>화면 위아래 끝으로 드래그하면 자동으로 스크롤됩니다.</strong><br>
+        4. 정렬이 완료되면 자동으로 종료되며, <strong>Top 5 안에 들면 상품을 받으실 수 있습니다!</strong>
+      </p>
+      <p style="color:var(--muted); font-size:13px; margin-top:20px;">
+        ※ 수집된 데이터는 연구 목적으로만 사용됩니다.
+      </p>
+    </div>
+
+    <div class="listWrap" id="listWrap" style="display:none;">
+      <div id="list" class="list"></div>
+    </div>
+  </div>
+  
+  <div class="footer">
+    © 32nd 엄지오, 32nd 이도혜
+  </div>
+  
+  <div class="toast-msg" id="toast"></div>
+</div>
+
+<!-- 업적 달성 팝업 -->
+<div class="achievement-popup" id="achievementPopup">
+  <div class="achievement-card">
+    <div class="achievement-icon" id="achPopupIcon">🏆</div>
+    <div class="achievement-title">🎉 업적 달성!</div>
+    <div class="achievement-name" id="achPopupName">업적 이름</div>
+    <div class="achievement-desc" id="achPopupDesc">업적 설명</div>
+  </div>
+</div>
+
+<!-- 초기화 버튼 (카드 외부 플로팅) -->
+<button class="secondary floating-reset-btn" id="resetBtn" disabled style="display:none;"><span>↺</span> 메인으로</button>
+
+<!-- 로그 다운로드 버튼 제거됨 (관리자는 admin.php에서 다운로드 가능) -->
+
+<script src="./Sortable.js"></script>
+<script>
+/* 설정 */
+const CSV_FILE = "./kr_korean.csv";
+const PRIMARY_WORD_COL_NAME = "단어";
+const SAMPLE_POOL_SIZE = 1500;
+const MODE_SCROLL_MULT = { 10: 1.0, 20: 1.0, 40: 1.0, 80: 1.0 }; 
+const BASE_MANUAL_SCROLL_SPEED = 15.0; 
+const koCollator = new Intl.Collator("ko-KR", { sensitivity: "base" });
+
+/* DOM */
+const listEl = document.getElementById("list");
+const listWrap = document.getElementById("listWrap");
+const memoBox = document.getElementById("memoBox");
+const timerEl = document.getElementById("timer");
+const statusEl = document.getElementById("status");
+const gaugeBarEl = document.getElementById("gaugeBar");
+const progressText = document.getElementById("progressText");
+// My Page Modal
+const myPageModal = document.getElementById('myPageModal');
+
+// (Legacy Header Button Removed)
+const startBtn = document.getElementById("startBtn");
+const resetBtn = document.getElementById("resetBtn");
+const sizeSel = document.getElementById("sizeSel");
+// logBtn removed - logs are for admin only
+const toast = document.getElementById("toast");
+const desktopHud = document.getElementById("desktopHud");
+const contentArea = document.querySelector(".contentArea");
+const cardEl = document.querySelector(".card");
+const hudToggle = document.getElementById("hudToggle");
+
+// 랭킹 및 패널 UI
+const gameStatusPanel = document.getElementById("gameStatusPanel");
+const rankingBtnArea = document.getElementById("rankingBtnArea");
+const showRankingBtn = document.getElementById("showRankingBtn");
+const rankingModal = document.getElementById("rankingModal");
+const rankingCloseBtn = document.getElementById("rankingCloseBtn");
+const rankingOkBtn = document.getElementById("rankingOkBtn");
+const rankList = document.getElementById("rankList");
+const rankingModalSubtitle = document.getElementById("rankingModalSubtitle");
+const finishModal = document.getElementById("finishModal");
+const finishMessage = document.getElementById("finishMessage");
+const finishTimeVal = document.getElementById("finishTimeVal");
+const finishDifficultyVal = document.getElementById("finishDifficultyVal");
+const finishCloseBtn = document.getElementById("finishCloseBtn");
+const myPageBtnMain = document.getElementById("myPageBtnMain");
+
+if(myPageBtnMain){
+    myPageBtnMain.addEventListener('click', async () => {
+        if(!userInfo.id){ 
+            showToast("로그인이 필요합니다."); 
+            loginModal.classList.remove('hidden');
+            return; 
+        }
+
+        // Refresh Data
+        try {
+            const res = await fetch(`${API_BASE}/achievements.php`, {
+                method: "POST",
+                headers: { "Content-Type": "application/x-www-form-urlencoded" },
+                body: new URLSearchParams({ id: userInfo.id, mode: 'VIEW_ONLY', time: 0, error_count: 0 })
+            });
+            const data = await res.json();
+            if(data.success){
+                userInfo.achievements = data.all_achievements;
+                updateMyPageUI(userInfo.achievements || [], data.global_stats || {});
+            }
+        } catch(e){ console.error(e); }
+        
+        myPageModal.classList.remove('hidden');
+    });
+}
+
+
+/* 상태값 */
+let userInfo = { id: "", name: "" };
+let started = false;
+let finished = false;
+let startTime = 0;
+let timerId = null;
+let N = 10;
+let isDataReady = false;
+let koPool = [];
+let items = [];
+let wordMap = [];    
+let initialInv = 1;
+let actionLog = [];
+let sortableInst = null;
+let dragging = false;
+let lastClientY = null;
+let scrollLoopId = null;
+
+// 로깅용 상태
+let orderBeforeMove = "";
+let prevInversionCount = -1;
+let errorCount = 0; // 에러 이동 횟수 (inversion 증가 시)
+
+/* 로그인 */
+const loginModal = document.getElementById("loginModal");
+/* 로그인 & 회원가입 로직 */
+const tabLogin = document.getElementById("tabLogin");
+const tabRegister = document.getElementById("tabRegister");
+const authActionBtn = document.getElementById("authActionBtn");
+const loginMsg = document.getElementById("loginMsg");
+const nameGroup = document.getElementById("nameGroup");
+const inputId = document.getElementById("inputId");
+const inputPw = document.getElementById("inputPw");
+const inputName = document.getElementById("inputName");
+
+let authMode = "login"; // login | register
+
+function setAuthMode(m){
+  authMode = m;
+  if(m === "login"){
+    tabLogin.style.borderBottomColor = "var(--primary)";
+    tabLogin.style.color = "var(--text)";
+    tabRegister.style.borderBottomColor = "transparent";
+    tabRegister.style.color = "var(--muted)";
+    authActionBtn.textContent = "로그인";
+    authActionBtn.classList.add("primary");
+    authActionBtn.classList.remove("secondary");
+    nameGroup.style.display = "none";
+  } else {
+    tabRegister.style.borderBottomColor = "var(--primary)";
+    tabRegister.style.color = "var(--text)";
+    tabLogin.style.borderBottomColor = "transparent";
+    tabLogin.style.color = "var(--muted)";
+    authActionBtn.textContent = "회원가입";
+    authActionBtn.classList.remove("primary");
+    authActionBtn.classList.add("secondary");
+    // visual cleanup
+    authActionBtn.style.background = "#fff";
+    authActionBtn.style.color = "var(--primary)";
+    authActionBtn.style.border = "1px solid var(--primary)";
+    nameGroup.style.display = "block";
+  }
+  loginMsg.style.display="none";
+}
+
+tabLogin.addEventListener("click", () => setAuthMode("login"));
+tabRegister.addEventListener("click", () => setAuthMode("register"));
+
+async function handleAuth(){
+  const id=inputId.value.trim();
+  const pw=inputPw.value.trim();
+  const nm=inputName.value.trim();
+  
+  if(!id || !pw){ loginMsg.textContent="아이디와 비밀번호를 입력해주세요."; loginMsg.style.display="block"; return; }
+  if(authMode==="register" && !nm){ loginMsg.textContent="이름(닉네임)을 입력해주세요."; loginMsg.style.display="block"; return; }
+  
+  authActionBtn.disabled = true;
+  loginMsg.style.display="none";
+
+  try {
+    const res = await fetch(`${API_BASE}/auth.php`, {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: new URLSearchParams({ action: authMode, id: id, pw: pw, name: nm })
+    });
+    const data = await res.json();
+    
+    if(data.success){
+      userInfo.id = id; 
+      userInfo.name = data.name || nm;
+      userInfo.avatar = data.avatar || '';
+      userInfo.achievements = data.achievements || [];
+      loginModal.classList.add("hidden");
+      showToast(authMode==="login" ? `환영합니다, ${userInfo.name}님!` : "가입 완료! 환영합니다.");
+      // Update avatar display if available
+      if(userInfo.avatar){
+        const avatarEl = document.getElementById('profileAvatar');
+        if(avatarEl) avatarEl.childNodes[0].textContent = userInfo.avatar;
+      }
+    } else {
+      loginMsg.textContent = data.message || "오류가 발생했습니다.";
+      loginMsg.style.display="block";
+    }
+  } catch(e) {
+    console.error(e);
+    loginMsg.textContent = "서버 통신 오류";
+    loginMsg.style.display="block";
+  } finally {
+    authActionBtn.disabled = false;
+  }
+}
+authActionBtn.addEventListener("click", handleAuth);
+inputId.addEventListener("keyup", (e)=>{ if(e.key==="Enter") inputPw.focus(); });
+inputPw.addEventListener("keyup", (e)=>{ 
+  if(e.key==="Enter") {
+    if(authMode==="login") handleAuth();
+    else inputName.focus();
+  }
+});
+inputName.addEventListener("keyup", (e)=>{ if(e.key==="Enter") handleAuth(); });
+
+/* 유틸 */
+function showToast(msg){
+  toast.innerText = msg; toast.classList.add("show");
+  setTimeout(()=> toast.classList.remove("show"), 2000);
+}
+function setStatus(state){
+  statusEl.className = "badge"; statusEl.textContent = state;
+  if(state === "진행 중") statusEl.classList.add("run");
+  else if(state === "완료") statusEl.classList.add("done");
+}
+function updateTimer(){
+  if(!started || finished) return;
+  const t = ((performance.now() - startTime) / 1000).toFixed(2);
+  document.querySelectorAll(".timer-display").forEach(el => el.textContent = t);
+}
+function shuffle(arr){
+  for(let i=arr.length-1;i>0;i--){
+    const j = Math.floor(Math.random()*(i+1));
+    [arr[i],arr[j]] = [arr[j],arr[i]];
+  }
+}
+function escapeHtml(s){ return String(s).replaceAll("&","&amp;").replaceAll("<","&lt;"); }
+function isSortedKeys(keys){ for(let i=1;i<keys.length;i++) if(keys[i-1] > keys[i]) return false; return true; }
+function currentKeys(){ return Array.from(listEl.querySelectorAll(".item")).map(el => Number(el.dataset.key)); }
+function currentWids(){ return Array.from(listEl.querySelectorAll(".item")).map(el => Number(el.dataset.wid)); }
+function inversionCount(keys){
+  let inv=0; for(let i=0;i<keys.length;i++) for(let j=i+1;j<keys.length;j++) if(keys[i] > keys[j]) inv++; return inv;
+}
+function updateGauge(keys){
+  const inv = inversionCount(keys);
+  const ratio = (initialInv <= 0) ? (inv === 0 ? 1 : 0) : (1 - (inv / initialInv));
+  const pct = Math.max(0, Math.min(1, ratio)) * 100;
+  gaugeBarEl.style.width = pct.toFixed(1) + "%";
+  const str = Math.floor(pct) + "%";
+  document.querySelectorAll(".progress-text-display").forEach(el => el.textContent = str);
+  return inv;
+}
+
+/* 랭킹 시스템 (LocalStorage Model) */
+/* 랭킹 시스템 (Server Model - PHP) */
+const API_BASE = "./api"; // PHP Backend Relative Path
+
+async function getRanks(modeKey){
+  try {
+    const res = await fetch(`${API_BASE}/rankings.php?mode=${modeKey}`);
+    if(!res.ok) return [];
+    return await res.json();
+  } catch(e) {
+    console.error("Failed to fetch ranks:", e);
+    return [];
+  }
+}
+
+async function saveRanking(modeKey, name, timeVal){
+  try {
+    await fetch(`${API_BASE}/rankings.php`, {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: new URLSearchParams({
+        mode: modeKey,
+        name: name,
+        time: timeVal
+      })
+    });
+  } catch(e) {
+    console.error("Failed to save rank:", e);
+    showToast("랭킹 저장 실패 (서버 연결 확인)");
+  }
+}
+async function openRankingModal(modeKey){
+  if(!modeKey) modeKey = sizeSel.options[sizeSel.selectedIndex].text; 
+  const key = sizeSel.value;
+  rankingModalSubtitle.textContent = `${modeKey} Ranking`;
+
+  // Show loading state or empty first
+  rankList.innerHTML = `<div class="rank-empty">불러오는 중...</div>`;
+  rankingModal.classList.remove("hidden");
+
+  const ranks = await getRanks(key);
+  
+  if(ranks.length === 0){
+    rankList.innerHTML = `<div class="rank-empty">아직 기록이 없습니다.<br>첫 번째 주인공이 되어보세요!</div>`;
+  } else {
+    // Render Function
+    const renderList = (limit) => {
+      let html = "";
+      ranks.slice(0, limit).forEach((r, idx) => {
+        const cls = idx === 0 ? "rank-item top1" : "rank-item";
+        html += `
+          <div class="${cls}">
+            <div style="display:flex; align-items:center;">
+               <span class="rank-rank">${idx+1}</span>
+               <span class="rank-name">${escapeHtml(r.name)}</span>
+            </div>
+            <span class="rank-time">${Number(r.time).toFixed(2)}s</span>
+          </div>
+        `;
+      });
+      return html;
+    };
+
+    // State
+    let isExpanded = false;
+
+    // Update View Function
+    const updateView = () => {
+        // CONTENT
+        rankList.innerHTML = renderList(isExpanded ? 100 : 5); // 5 or 100
+
+        // BUTTON (Only if > 5)
+        // BUTTON (Only if > 5)
+        if(ranks.length > 5){
+            const btnDiv = document.createElement("div");
+            // Use flexbox to force absolute centering
+            btnDiv.style.cssText = "display:flex; justify-content:center; width:100%; margin-top:15px; padding-bottom:5px;";
+            
+            const btn = document.createElement("button");
+            btn.textContent = isExpanded ? "▲ 접기 (Top 5)" : `▼ 전체 순위 보기 (Total ${ranks.length})`;
+            btn.style.cssText = `
+                background:white; border:1px solid #ddd; padding:8px 24px; 
+                border-radius:20px; color:#555; font-size:13px; font-weight:600; 
+                cursor:pointer; box-shadow:0 2px 5px rgba(0,0,0,0.05); transition:all 0.2s;
+            `;
+            btn.onmouseover = () => { btn.style.borderColor='#aaa'; btn.style.color='#333'; };
+            btn.onmouseout = () => { btn.style.borderColor='#ddd'; btn.style.color='#555'; };
+            
+            btn.onclick = () => {
+                isExpanded = !isExpanded;
+                updateView(); // Re-render
+                
+                // If expanding, scroll down a bit
+                if(isExpanded) {
+                    setTimeout(()=>{
+                        const el = document.querySelectorAll('.rank-item')[5];
+                        if(el) el.scrollIntoView({behavior:'smooth', block:'center'});
+                    }, 50);
+                } else {
+                    // If collapsing, scroll back to top of list
+                    rankList.scrollTop = 0;
+                }
+            };
+            btnDiv.appendChild(btn);
+            rankList.appendChild(btnDiv);
+        }
+    };
+
+    // Initial Draw
+    updateView();
+  }
+}
+
+/* [UI] 랭킹 버튼 및 모달 핸들러 */
+showRankingBtn.addEventListener("click", () => {
+  openRankingModal();
+});
+function closeRankingModal(){ rankingModal.classList.add("hidden"); }
+rankingCloseBtn.addEventListener("click", closeRankingModal);
+rankingOkBtn.addEventListener("click", closeRankingModal);
+// 배경 클릭 시 닫기
+rankingModal.addEventListener("click", (e)=>{ if(e.target===rankingModal) closeRankingModal(); });
+
+/* [UI] 완료 모달 핸들러 */
+function openFinishModal(difficultyText, time, isTop5){
+  finishDifficultyVal.textContent = difficultyText;
+  finishTimeVal.textContent = time + "s";
+  
+  let msg = "정말 대단한 실력이시네요!";
+  if(difficultyText.includes("씹상남자")) msg = "축하합니다!<br>당신은 진정한 <span style='color:#ef4444'>씹상남자</span>입니다! 💪";
+  else if(difficultyText.includes("상남자")) msg = "와우! 당신은 멋진 <span style='color:#3b82f6'>상남자</span>군요! 🔥";
+  else if(difficultyText.includes("중남자")) msg = "정석적인 실력이네요! <span style='color:#10b981'>중남자</span> 인정합니다! 👍";
+  else msg = "수고하셨습니다!<br>다음엔 더 높은 난이도에 도전해보세요! 😊";
+  
+  finishMessage.innerHTML = msg;
+
+  if(isTop5) {
+    let rewardHtml = "";
+    if(difficultyText.includes("씹상남자")) {
+      rewardHtml = "🎁 랭킹 Top 5 달성 보상!<br><span style='font-size:16px;'>1316 엄지오에게 오시면<br><b>'나랑드사이다 + 과자'</b>를 드립니다!</span>";
+    } else if(difficultyText.includes("상남자")) {
+      rewardHtml = "🎁 랭킹 Top 5 달성 보상!<br><span style='font-size:16px;'>1316 엄지오에게 오시면<br><b>'과자'</b>를 드립니다!</span>";
+    } else if(difficultyText.includes("중남자")) {
+      rewardHtml = "🎁 랭킹 Top 5 달성 보상!<br><span style='font-size:16px;'>1316 엄지오에게 오시면<br><b>'나랑드사이다'</b>를 드립니다!</span>";
+    } else {
+      rewardHtml = "📢 랭킹 Top 5 달성!<br><span style='font-size:15px;'>축하드립니다! 하지만...<br><b>하남자에겐 보상따윈 없습니다!</b> 😎</span>";
+    }
+
+    const rewardMsg = document.createElement("div");
+    rewardMsg.style.cssText = "margin-top:20px; padding:12px; background:#fff7ed; border:1px dashed #fbbf24; border-radius:12px; font-size:14px; color:#9a3412; font-weight:700;";
+    rewardMsg.innerHTML = rewardHtml;
+    finishMessage.appendChild(rewardMsg);
+  }
+
+  finishModal.classList.remove("hidden");
+}
+function closeFinishModal(){ finishModal.classList.add("hidden"); }
+finishCloseBtn.addEventListener("click", closeFinishModal);
+finishModal.addEventListener("click", (e)=>{ if(e.target===finishModal) closeFinishModal(); });
+
+
+
+/* 데이터 로드 */
+const cDiv = document.querySelector(".controls");
+const lb = document.createElement("div");
+lb.style.cssText = "font-size:12px;font-weight:600;color:#64748b;margin-left:auto;";
+lb.textContent = "데이터 준비 중...";
+if(cDiv) cDiv.insertBefore(lb, cDiv.firstChild);
+
+async function initBackgroundDataLoad(){
+  try{
+    startBtn.disabled=true;
+    const res = await fetch(CSV_FILE);
+    if(!res.ok) throw new Error("File not found");
+    const text = await res.text();
+    await new Promise(r=>setTimeout(r,50));
+    const reservoir = processCsvText(text);
+    if(reservoir.length<100) throw new Error("Data missing");
+    koPool=reservoir; isDataReady=true;
+    lb.textContent="✔ 준비 완료"; lb.style.color="#10B981";
+    if(!started) startBtn.disabled=false;
+  }catch(e){
+    console.error(e); lb.textContent="❌ 로드 실패"; lb.style.color="#ef4444";
+  }
+}
+function splitCsvLine(line){ const out=[]; let cur=""; let inQ=false; for(let i=0;i<line.length;i++){const ch=line[i];if(ch==='"'){if(inQ&&line[i+1]==='"'){cur+='"';i++;}else inQ=!inQ;}else if(ch===','&&!inQ){out.push(cur);cur="";}else{cur+=ch;}}out.push(cur);return out;}
+function processCsvText(txt){
+  txt=txt.replace(/^\uFEFF/,""); const l=txt.split(/\r?\n/);
+  if(l.length===0) return[];
+  const h=splitCsvLine(l[0]).map(x=>x.trim());
+  let idx=h.findIndex(x=>x===PRIMARY_WORD_COL_NAME); if(idx<0) idx=0;
+  const s=new Set(); const r=[]; let c=0;
+  for(let i=1;i<l.length;i++){
+    if(l[i].trim().length===0)continue;
+    const cols=splitCsvLine(l[i]); const w=String(cols[idx]||"").trim();
+    if(!w||w.length<2||w.includes("-")||w.includes("^")||/[0-9]/.test(w)||s.has(w))continue;
+
+    // 만약 유니코드 특수 문자(PUA 등)가 포함되어 있으면 제외
+    let hasPua = false;
+    for(let j=0; j<w.length; j++) {
+      const code = w.charCodeAt(j);
+      if(code >= 0xE000 && code <= 0xF8FF) { hasPua = true; break; }
+    }
+    if(hasPua) continue;
+
+    s.add(w); c++;
+    if(r.length<SAMPLE_POOL_SIZE) r.push(w);
+    else { const j=Math.floor(Math.random()*c); if(j<SAMPLE_POOL_SIZE) r[j]=w; }
+  }
+  shuffle(r); return r;
+}
+initBackgroundDataLoad();
+
+/* 스크롤 로직 */
+function getScrollMul(){ return MODE_SCROLL_MULT[Number(sizeSel.value)] ?? 1.5; }
+function autoScrollByPointer(y){
+  if(!dragging) return;
+  const sc = contentArea; if(!sc) return;
+  const r = sc.getBoundingClientRect();
+  const m = 120; const bs = BASE_MANUAL_SCROLL_SPEED*getScrollMul();
+  const top=r.top+m; const bot=r.bottom-m;
+  let spd=0;
+  if(y<top){ const i=Math.max(0,(top-y)/m); spd=-(bs+(i*i*50)); }
+  else if(y>bot){ const i=Math.max(0,(y-bot)/m); spd=(bs+(i*i*50)); }
+  if(spd!==0) sc.scrollTop+=spd;
+}
+function startScrollLoop(){ if(scrollLoopId) clearInterval(scrollLoopId); scrollLoopId=setInterval(()=>{ if(dragging&&lastClientY!==null) autoScrollByPointer(lastClientY); }, 12); }
+function stopScrollLoop(){ if(scrollLoopId) clearInterval(scrollLoopId); scrollLoopId=null; }
+document.addEventListener("touchmove",e=>{if(dragging&&e.touches[0])lastClientY=e.touches[0].clientY;},{passive:true});
+document.addEventListener("mousemove",e=>{if(dragging)lastClientY=e.clientY;},{passive:true});
+
+/* HUD Control */
+function updateHud(forceOn, forceOff){
+  if(forceOff) {
+    desktopHud.classList.remove("visible");
+    return;
+  }
+  
+  const isEnabled = hudToggle.checked;
+  if(started && isEnabled && !finished) {
+    desktopHud.classList.add("visible");
+  } else {
+    desktopHud.classList.remove("visible");
+  }
+}
+hudToggle.addEventListener("change", () => updateHud());
+
+/* 게임 메인 */
+function renderList(){
+  listEl.innerHTML="";
+  items.forEach(it=>{
+    const d=document.createElement("div");
+    d.className="item"; d.dataset.key=it.key; d.dataset.wid=it.wid;
+    d.innerHTML=`<div class="label">${escapeHtml(it.label)}</div><div class="handle">≡</div>`;
+    listEl.appendChild(d);
+  });
+}
+function ensureNotAlreadySorted(arr){
+  const check = (list) => { for(let i=1;i<list.length;i++) if(list[i-1].key > list[i].key) return false; return true; };
+  let temp=arr; for(let k=0; k<10; k++){ if(!check(temp)) return temp; shuffle(temp); } return temp;
+}
+function sampleUnique(pool, k){ const copy=[...pool]; shuffle(copy); return copy.slice(0, k); }
+
+async function startRun(){
+  if(!userInfo.id){ loginModal.classList.remove("hidden"); return; }
+  if(!isDataReady){ showToast("데이터 로딩 중입니다."); return; }
+  N = Number(sizeSel.value);
+  setStatus("준비 중");
+  try{
+    const pool = koPool;
+    const picked = sampleUnique(pool, N);
+    const sorted = [...picked].sort((a,b) => koCollator.compare(a,b));
+    const rankMap = new Map(sorted.map((w,i)=>[w, i+1]));
+    wordMap = picked.map(w => w); 
+    let out = picked.map((w, i) => ({ wid: i+1, key: rankMap.get(w), label: w }));
+    shuffle(out); items = ensureNotAlreadySorted(out);
+  }catch(e){ setStatus("오류"); showToast("생성 실패"); return; }
+
+  memoBox.style.display="none"; listWrap.style.display="block";
+  resetBtn.disabled=false; resetBtn.style.display="block"; // 플로팅 리셋 버튼 표시
+  sizeSel.disabled=true; startBtn.disabled=true;
+
+  started=true; finished=false; startTime=performance.now();
+  document.querySelectorAll(".timer-display").forEach(el=>el.textContent="0.00");
+  clearInterval(timerId); timerId=setInterval(updateTimer,50);
+
+  renderList();
+  const keys=currentKeys(); 
+  initialInv=Math.max(1,inversionCount(keys)); 
+  prevInversionCount=initialInv; 
+  updateGauge(keys);
+  
+  setStatus("진행 중"); 
+  actionLog=[]; 
+  errorCount=0; // 에러 카운트 초기화
+  logAction("INIT", 0, 0, 0, prevInversionCount, currentWids().join("|"));
+  
+  // UI 상태 전환: 랭킹 버튼 숨김 -> 게임 패널 표시
+  rankingBtnArea.classList.remove("active");
+  gameStatusPanel.classList.add("active");
+  
+  // 게임 시작 시 카드 크기 축소 (80%)
+  if(cardEl) cardEl.classList.add("game-active");
+
+  initSortable();
+  updateHud(true);
+
+  setTimeout(() => {
+     if(contentArea) contentArea.scrollTop = 0;
+     window.scrollTo(0,0);
+  }, 50);
+}
+
+function initSortable(){
+  if(sortableInst) sortableInst.destroy();
+  sortableInst = new Sortable(listEl, {
+    forceFallback: true, animation: 200, ghostClass: "sortable-ghost", chosenClass: "sortable-chosen",
+    scroll: contentArea, scrollSensitivity: 150, scrollSpeed: 20, bubbleScroll: true,
+    onStart: (evt) => {
+      dragging=true; orderBeforeMove=currentWids().join("|");
+      try{ const r = evt.item.getBoundingClientRect(); lastClientY = (r.top + r.bottom) / 2; }catch(_){}
+      startScrollLoop(); document.body.style.cursor="grabbing";
+    },
+    onEnd: (evt) => {
+      dragging=false; stopScrollLoop(); document.body.style.cursor="";
+      if(evt.oldIndex!==evt.newIndex){
+        const keys = currentKeys();
+        const currInv = inversionCount(keys);
+        logAction("MOVE", evt.item.dataset.wid, evt.oldIndex, evt.newIndex, currInv, orderBeforeMove);
+        checkFinish(keys, currInv);
+        prevInversionCount = currInv;
+      }
+    }
+  });
+}
+
+function logAction(act, wid, from, to, currInv, extraInfo){
+  const dist = (act === "MOVE") ? Math.abs(from - to) : 0;
+  const isError = (act === "MOVE" && currInv > prevInversionCount) ? 1 : 0;
+  if(isError) errorCount++; // 에러 이동 카운트
+  const scrollPos = (contentArea) ? Math.floor(contentArea.scrollTop) + (window.scrollY || 0) : 0;
+  
+  actionLog.push({
+    time: ((performance.now() - startTime)/1000).toFixed(3),
+    mode: sizeSel.options[sizeSel.selectedIndex].text,
+    action: act, 
+    wid: wid || 0, 
+    from_idx: from, 
+    to_idx: to, 
+    drag_dist: dist,
+    scroll_pos: scrollPos,
+    inversion: currInv,
+    is_error: isError,
+    order_snapshot: (act==="INIT") ? extraInfo : (act==="END" ? extraInfo : "") 
+  });
+}
+
+function checkFinish(keys, currInv){
+  if(!keys) keys = currentKeys();
+  if(currInv === undefined) currInv = inversionCount(keys);
+  
+  updateGauge(keys);
+  
+  if(isSortedKeys(keys)){
+    finished=true; clearInterval(timerId); setStatus("완료");
+    sortableInst.option("disabled", true);
+    gaugeBarEl.style.width="100%"; 
+    document.querySelectorAll(".progress-text-display").forEach(el=>el.textContent="100%");
+    
+    // 랭킹 저장
+    const finalTime = ((performance.now() - startTime) / 1000).toFixed(2);
+    const difficultyText = sizeSel.options[sizeSel.selectedIndex].text;
+    
+    // Save Ranking (Async)
+    saveRanking(sizeSel.value, userInfo.name, finalTime).then(() => {
+        // Refresh ranking check for modal if needed
+        checkTop5Reward(sizeSel.value, difficultyText, finalTime);
+        // Check Achievements
+        // Check Achievements (Pass value '10','20' etc for robust check)
+        checkAchievements(sizeSel.value, finalTime, errorCount);
+    });
+
+    // Auto-Upload Logs
+    logAction("END",0,0,0,0, currentWids().join("|"));
+    uploadLogsToServer(); // Send logs immediately
+    
+    showToast(`정렬 완료! 기록: ${finalTime}초`);
+  }
+}
+
+async function checkTop5Reward(modeValue, difficultyText, finalTime){
+  // Wait a bit to ensure server updated (simple approach) or just trust the response
+  const ranks = await getRanks(modeValue);
+  
+  // Find where my record is
+  // Strict check: Name match matches AND time is extremely close
+  const myRankIdx = ranks.findIndex(r => r.name === userInfo.name && Math.abs(r.time - Number(finalTime)) < 0.01);
+  
+  // Only true if I am in index 0, 1, 2, 3, or 4 (Top 5)
+  const isTop5 = (myRankIdx !== -1 && myRankIdx < 5);
+  
+  openFinishModal(difficultyText, finalTime, isTop5);
+}
+
+async function uploadLogsToServer(){
+  const { c1, c2 } = generateLogContent();
+  // Add timestamp to prevent overwriting
+  const now = new Date();
+  const timeStr = String(now.getHours()).padStart(2, '0') + String(now.getMinutes()).padStart(2, '0') + String(now.getSeconds()).padStart(2, '0');
+  const p = `sorted_exp_${userInfo.id}_${userInfo.name}_${timeStr}`;
+  
+  // Upload Actions Log
+  fetch(`${API_BASE}/logs.php`, {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: new URLSearchParams({ filename: `${p}_Actions_Enhanced.csv`, content: c1 })
+  }).catch(e=>console.error("Log upload failed:",e));
+  
+  // Upload Words Log
+  fetch(`${API_BASE}/logs.php`, {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: new URLSearchParams({ filename: `${p}_Words.csv`, content: c2 })
+  }).catch(e=>console.error("Log upload failed:",e));
+}
+
+async function checkAchievements(mode, time, errCount){
+    if(!userInfo.id) return;
+    try {
+        const res = await fetch(`${API_BASE}/achievements.php`, {
+            method: "POST",
+            headers: { "Content-Type": "application/x-www-form-urlencoded" },
+            body: new URLSearchParams({ 
+                id: userInfo.id, 
+                mode: mode, 
+                time: time, 
+                error_count: errCount
+            })
+        });
+        const data = await res.json();
+        if(data.success && data.new_achievements && data.new_achievements.length > 0){
+            // 업적 팝업 큐에 추가
+            showAchievementQueue(data.new_achievements);
+            userInfo.achievements = data.all_achievements;
+        }
+    } catch(e){ console.error("Achievement check failed", e); }
+}
+
+// 업적 팝업 표시 함수
+let achievementQueue = [];
+let isShowingAchievement = false;
+
+function showAchievementQueue(achievements){
+    achievementQueue.push(...achievements);
+    if(!isShowingAchievement) showNextAchievement();
+}
+
+function showNextAchievement(){
+    if(achievementQueue.length === 0){
+        isShowingAchievement = false;
+        return;
+    }
+    isShowingAchievement = true;
+    const ach = achievementQueue.shift();
+    
+    document.getElementById('achPopupIcon').textContent = ach.icon || '🏆';
+    document.getElementById('achPopupName').textContent = ach.name;
+    document.getElementById('achPopupDesc').textContent = ach.desc;
+    
+    const popup = document.getElementById('achievementPopup');
+    popup.classList.add('show');
+    
+    // 클릭하면 닫기
+    popup.onclick = () => {
+        popup.classList.remove('show');
+        setTimeout(showNextAchievement, 300);
+    };
+    
+    // 3초 후 자동 닫기
+    setTimeout(() => {
+        if(popup.classList.contains('show')){
+            popup.classList.remove('show');
+            setTimeout(showNextAchievement, 300);
+        }
+    }, 3000);
+}
+
+function generateLogContent(){
+  const h = ["time","mode","action","moved_wid","from_idx","to_idx","drag_dist","scroll_pos","inversion_count","is_error_move","order_snapshot"];
+  let c1 = h.join(",") + "\n";
+  actionLog.forEach(r => { 
+    c1 += [r.time, r.mode, r.action, r.wid, r.from_idx, r.to_idx, r.drag_dist, r.scroll_pos, r.inversion, r.is_error, r.order_snapshot].map(toCsvCell).join(",") + "\n"; 
+  });
+  let c2 = "wid,word\n";
+  wordMap.forEach((w, i) => { c2 += `${i+1},${toCsvCell(w)}\n`; });
+  c2 += `\nParticipant_ID,${toCsvCell(userInfo.id)}\nName,${toCsvCell(userInfo.name)}\nDate,${new Date().toLocaleString()}\n`;
+  return { c1, c2 };
+}
+
+function resetAll(){
+  started=false; finished=false; stopScrollLoop(); clearInterval(timerId);
+  if(sortableInst) sortableInst.destroy(); sortableInst=null;
+  document.querySelectorAll(".timer-display").forEach(el=>el.textContent="0.00");
+  setStatus("대기"); gaugeBarEl.style.width="0%"; 
+  document.querySelectorAll(".progress-text-display").forEach(el=>el.textContent="0%");
+  listEl.innerHTML=""; items=[];
+  sizeSel.disabled=false; startBtn.disabled=!isDataReady; resetBtn.disabled=true;
+  resetBtn.style.display="none"; // 플로팅 리셋 버튼 숨김
+  memoBox.style.display="block"; listWrap.style.display="none";
+  updateHud(false, true);
+  
+  // UI 상태 복구: 게임 패널 숨김 -> 랭킹 버튼 표시
+  gameStatusPanel.classList.remove("active");
+  rankingBtnArea.classList.add("active");
+  
+  // 대기 화면으로 복귀 시 카드 크기 확대 (120%)
+  if(cardEl) cardEl.classList.remove("game-active");
+}
+startBtn.addEventListener("click", startRun);
+resetBtn.addEventListener("click", resetAll);
+
+function toCsvCell(v){ const s = String(v ?? ""); if(/[",\n]/.test(s)) return `"${s.replaceAll('"','""')}"`; return s; }
+function downloadFile(fn, c){
+  const BOM = "\uFEFF"; const blob = new Blob([BOM + c], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob); const a = document.createElement("a"); a.href = url; a.download = fn; document.body.appendChild(a); a.click(); a.remove();
+}
+
+// My Page UI Updater
+function updateMyPageUI(myCodes, stats){
+    const listDiv = document.getElementById('myAchList');
+    if(!listDiv) return;
+    
+    // Definition mapping for display
+    const achDefs = [
+        { id: 'clear_easy', icon: '🚩', name: '하남자 정복', desc: '하남자 난이도 클리어' },
+        { id: 'speed_easy', icon: '👧', name: '하남자의 왕', desc: '10초 이내 클리어' },
+        { id: 'clear_normal', icon: '🚩', name: '중남자 정복', desc: '중남자 난이도 클리어' },
+        { id: 'speed_normal', icon: '👦', name: '중남자의 왕', desc: '60초 이내 클리어' },
+        { id: 'clear_hard', icon: '🚩', name: '상남자 정복', desc: '상남자 난이도 클리어' },
+        { id: 'speed_hard', icon: '😎', name: '상남자의 왕', desc: '180초 이내 클리어' },
+        { id: 'clear_extreme', icon: '🤫', name: '씹상남자 정복', desc: '씹상남자 난이도 클리어' },
+        { id: 'speed_extreme', icon: '👑', name: '씹상남자의 왕', desc: '600초 이내 클리어' },
+        { id: 'god_hand', icon: '🎯', 'name': '신의 손', 'desc': '진행도를 낮추지 않고 완벽 클리어' },
+        { id: 'slow_steady', icon: '🔥', 'name': '불굴의 의지', 'desc': '오랜 시간(난이도별 기준) 끝에 승리' },
+        { id: 'ranker', icon: '🏆', 'name': '명예의 전당', 'desc': '랭킹 Top 5 진입' },
+        { id: 'goat', icon: '🐐', 'name': 'GOAT', 'desc': '랭킹 1위 달성' },
+        { id: 'lucky_seven', icon: '🍀', 'name': '럭키세븐', 'desc': '기록 .77초 달성' },
+        { id: 'veteran_10', icon: '⚔️', 'name': '전장의 지배자', 'desc': '10회 클리어 달성' },
+        { id: 'real_man', icon: '☠️', 'name': '남자중의 남자', 'desc': '업적 10개 달성' },
+        { id: 'secret_master', icon: '❓', 'name': '???', 'desc': '???', unlockedIcon: '🔱', unlockedName: '신', unlockedDesc: '모든 업적 달성' },
+    ];
+
+    let html = "";
+    achDefs.forEach(def => {
+        const has = myCodes.includes(def.id);
+        // Show unlocked normally, locked as grayed out
+        const style = has ? "opacity:1; background:#f0f9ff; border-color:#bae6fd;" : "opacity:0.5; filter:grayscale(100%); background:#f8fafc;";
+        const per = (stats && stats[def.id] !== undefined) ? stats[def.id] + '%' : '0%';
+        
+        // Use unlocked name/desc/icon if available and unlocked
+        const displayName = (has && def.unlockedName) ? def.unlockedName : def.name;
+        const displayDesc = (has && def.unlockedDesc) ? def.unlockedDesc : def.desc;
+        const displayIcon = (has && def.unlockedIcon) ? def.unlockedIcon : def.icon;
+        
+        html += `
+            <div style="display:flex; align-items:center; gap:12px; padding:12px; border:1px solid #e2e8f0; border-radius:12px; ${style}">
+                <div style="font-size:32px; flex-shrink:0;">${displayIcon}</div>
+                <div style="flex:1; min-width:0;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:4px;">
+                        <span style="font-weight:700; color:#0f172a; font-size:15px; white-space:nowrap;">${displayName}</span>
+                        <span style="font-size:11px; font-weight:600; color:#64748b; background:#e2e8f0; padding:2px 6px; border-radius:4px; white-space:nowrap;">전체 ${per}</span>
+                    </div>
+                    <div style="font-size:12px; color:#64748b; margin-top:2px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${displayDesc}</div>
+                </div>
+            </div>
+        `;
+    });
+    listDiv.innerHTML = html;
+    
+    // Update Profile Info (text only, don't replace structure)
+    const nameDisp = document.getElementById('myNameDisplay');
+    const idDisp = document.getElementById('myIdDisplay');
+    const avatarEl = document.getElementById('profileAvatar');
+    
+    if(nameDisp) nameDisp.textContent = userInfo.name || "User";
+    if(idDisp) idDisp.textContent = `ID: ${userInfo.id || "-"}`;
+    if(avatarEl && userInfo.avatar) {
+        // Keep the edit badge, just change the main emoji
+        avatarEl.childNodes[0].textContent = userInfo.avatar;
+    }
+}
+
+// Global scope functions for Name Edit (toggle)
+window.enableNameEdit = function(){
+    const form = document.getElementById('nameEditForm');
+    if(form.style.display === 'flex'){
+        form.style.display = 'none';
+    } else {
+        form.classList.remove('hidden');
+        form.style.display = 'flex';
+        document.getElementById('newNameInput').value = userInfo.name || '';
+    }
+}
+window.saveNewName = async function(){
+    const newName = document.getElementById('newNameInput').value.trim();
+    if(!newName) return;
+    
+    if(confirm(`닉네임을 '${newName}'(으)로 변경하시겠습니까?\n(랭킹판의 기존 기록도 모두 변경됩니다.)`)){
+        try {
+            const res = await fetch(`${API_BASE}/update_profile.php`, {
+                method: "POST",
+                headers: { "Content-Type": "application/x-www-form-urlencoded" },
+                body: new URLSearchParams({ id: userInfo.id, new_name: newName })
+            });
+            const data = await res.json();
+            if(data.success){
+                alert("변경되었습니다.");
+                userInfo.name = newName;
+                document.getElementById('myNameDisplay').textContent = newName;
+                document.getElementById('nameEditForm').style.display = 'none';
+            } else {
+                alert(data.message || "오류가 발생했습니다.");
+            }
+        } catch(e){ console.error(e); alert("통신 오류가 발생했습니다."); }
+    }
+}
+
+// 아바타 선택 기능
+window.showAvatarPicker = function(){
+    const picker = document.getElementById('avatarPicker');
+    if(picker.style.display === 'none'){
+        populateAvatarPicker(); // 열 때마다 업적 상태 반영
+        picker.style.display = 'block';
+    } else {
+        picker.style.display = 'none';
+    }
+}
+
+window.selectAvatar = async function(emoji){
+    // Update UI immediately
+    const avatarEl = document.getElementById('profileAvatar');
+    // Keep the edit badge, just change the main emoji
+    avatarEl.childNodes[0].textContent = emoji;
+    document.getElementById('avatarPicker').style.display = 'none';
+    
+    // Save to server
+    try {
+        await fetch(`${API_BASE}/update_profile.php`, {
+            method: "POST",
+            headers: { "Content-Type": "application/x-www-form-urlencoded" },
+            body: new URLSearchParams({ id: userInfo.id, avatar: emoji })
+        });
+        userInfo.avatar = emoji;
+        showToast("아바타가 변경되었습니다!");
+    } catch(e){ console.error(e); }
+}
+
+// 로그아웃 기능
+window.logout = function(){
+    if(confirm("로그아웃 하시겠습니까?")){
+        userInfo = { id: "", name: "", avatar: "" };
+        localStorage.removeItem('questree_user');
+        document.getElementById('myPageModal').classList.add('hidden');
+        loginModal.classList.remove('hidden');
+        showToast("로그아웃 되었습니다.");
+    }
+}
+
+// 아바타 피커 채우기 (업적 기반)
+const BASE_AVATARS = ['🧑‍💻', '👤', '🧑', '👩', '👨', '🧒', '🐱', '🐶', '🐻', '🦊', '🐰', '🐼'];
+const ACHIEVEMENT_AVATARS = [
+    { emoji: '🚩', achId: 'clear_easy', name: '하남자 정복' },
+    { emoji: '👧', achId: 'speed_easy', name: '하남자의 왕' },
+    { emoji: '👦', achId: 'speed_normal', name: '중남자의 왕' },
+    { emoji: '😎', achId: 'speed_hard', name: '상남자의 왕' },
+    { emoji: '🤫', achId: 'clear_extreme', name: '씹상남자 정복' },
+    { emoji: '👑', achId: 'speed_extreme', name: '씹상남자의 왕' },
+    { emoji: '🎯', achId: 'god_hand', name: '신의 손' },
+    { emoji: '🔥', achId: 'slow_steady', name: '불굴의 의지' },
+    { emoji: '🏆', achId: 'ranker', name: '명예의 전당' },
+    { emoji: '🐐', achId: 'goat', name: 'GOAT' },
+    { emoji: '🍀', achId: 'lucky_seven', name: '럭키세븐' },
+    { emoji: '⚔️', achId: 'veteran_10', name: '전장의 지배자' },
+    { emoji: '☠️', achId: 'real_man', name: '남자중의 남자' },
+    { emoji: '🔱', achId: 'secret_master', name: '신', lockedEmoji: '❓', lockedName: '???' },
+];
+
+function populateAvatarPicker(){
+    const myAchs = userInfo.achievements || [];
+    
+    // Base avatars
+    const baseDiv = document.getElementById('baseAvatars');
+    baseDiv.innerHTML = BASE_AVATARS.map(e => 
+        `<span class="avatar-option" onclick="selectAvatar('${e}')">${e}</span>`
+    ).join('');
+    
+    // Achievement avatars
+    const achDiv = document.getElementById('achievementAvatars');
+    achDiv.innerHTML = ACHIEVEMENT_AVATARS.map(a => {
+        const unlocked = myAchs.includes(a.achId);
+        // For secret achievement: show ❓ when locked, actual emoji when unlocked
+        const displayEmoji = unlocked ? a.emoji : (a.lockedEmoji || a.emoji);
+        if(unlocked){
+            return `<span class="avatar-option" onclick="selectAvatar('${a.emoji}')" title="${a.name}">${displayEmoji}</span>`;
+        } else {
+            return `<span class="avatar-option locked" title="🔒 ${a.lockedName || a.name} 업적 달성 필요">${displayEmoji}</span>`;
+        }
+    }).join('');
+}
+
+// 초기 실행 시
+resetAll();
+</script>
+</body>
+</html>

@@ -3,11 +3,15 @@
 <head>
 <meta charset="utf-8" />
 <title>정렬 색인 실험</title>
-<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
 <!-- 프리텐다드 폰트 (CDN) -->
 <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard-dynamic-subset.css" />
 
 <style>
+  /* Mobile Input Fix */
+  input, select, textarea { font-size: 16px !important; }
+  @media (max-width: 768px) { body { padding: 10px; } }
+
 :root{
   --bg: #F8FAFC;
   --card: #ffffff;
@@ -40,7 +44,7 @@ body{
   display: flex;
   justify-content: center;
   align-items: center;
-  min-height: 100vh;
+  min-height: 100dvh;
 }
 
 /* 배경 장식 */
@@ -87,11 +91,7 @@ body::before {
 }
 
 /* 게임 활성화 시 상단 정렬 및 적절한 여백 */
-/* 게임 활성화 시 상단 정렬 및 적절한 여백 */
-body:has(.card.game-active) {
-  align-items: flex-start;
-  padding: 16px 0;
-}
+/* Game active styling removed to match reference */
 
 /* 헤더 영역 */
 .header{
