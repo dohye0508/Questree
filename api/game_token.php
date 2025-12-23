@@ -78,6 +78,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             exit;
         }
         
+        // Check actual elapsed time vs submitted time (anti-cheat)
+        $actualElapsed = time() - $tokenData['created'];
+        if ($time < ($actualElapsed - 2)) { // 2 second margin for network latency
+            echo json_encode(['success' => false, 'error' => 'Time mismatch - cheating detected']);
+            exit;
+        }
+        
         // Check minimum time based on mode
         $minTimes = ['10' => 3, '20' => 10, '40' => 30, '80' => 60];
         $modeKey = $tokenData['mode'];
