@@ -864,7 +864,7 @@ button:disabled{ opacity: 0.5; cursor: not-allowed; transform: none !important; 
 <!-- 초기화 버튼 (카드 외부 플로팅) -->
 <button class="secondary floating-reset-btn" id="resetBtn" disabled style="display:none;"><span>↺</span> 메인으로</button>
 
-<!-- 로그 다운로드 버튼 제거됨 (관리자는 admin.php에서 다운로드 가능) -->
+
 
 <!-- PVP Modals (Moved for layout stability) -->
 <div class="modalOverlay hidden" id="modeSelectModal">
@@ -967,6 +967,35 @@ button:disabled{ opacity: 0.5; cursor: not-allowed; transform: none !important; 
 
 <script src="./Sortable.js"></script>
 <script>
+/* Anti-DevTools */
+(function(){
+  // Block keyboard shortcuts
+  document.addEventListener('keydown', function(e){
+    if(e.key === 'F12' || (e.ctrlKey && e.shiftKey && (e.key === 'I' || e.key === 'J' || e.key === 'C')) || (e.ctrlKey && e.key === 'u')){
+      e.preventDefault(); return false;
+    }
+  });
+  // Block right-click
+  document.addEventListener('contextmenu', function(e){ e.preventDefault(); return false; });
+  // Detect DevTools - freeze when open, refresh when closed
+  let devtoolsOpen = false;
+  const threshold = 160;
+  setInterval(function(){
+    const widthDiff = window.outerWidth - window.innerWidth > threshold;
+    const heightDiff = window.outerHeight - window.innerHeight > threshold;
+    const isOpen = widthDiff || heightDiff;
+    if(isOpen && !devtoolsOpen){
+      devtoolsOpen = true;
+      document.body.style.filter = 'blur(10px)';
+      document.body.style.pointerEvents = 'none';
+      alert('🚫 개발자 도구가 감지되었습니다. 닫아주세요.');
+    } else if(!isOpen && devtoolsOpen){
+      devtoolsOpen = false;
+      location.reload(); // Refresh when closed
+    }
+  }, 300);
+})();
+
 /* 설정 */
 const CSV_FILE = "./kr_korean.csv";
 const PRIMARY_WORD_COL_NAME = "단어";
@@ -1144,9 +1173,11 @@ let initialInv = 1;
 let actionLog = [];
 let sortableInst = null;
 let dragging = false;
+let lastDragTime = 0; // Anti-macro: track last drag time
 let lastClientY = null;
 let scrollLoopId = null;
 let gameToken = null; // Anti-cheat token
+let keyOrderMap = {}; // Maps random DOM key to actual order (anti-cheat)
 
 // 로깅용 상태
 let orderBeforeMove = "";
@@ -1304,7 +1335,9 @@ function shuffle(arr){
 }
 function escapeHtml(s){ return String(s).replaceAll("&","&amp;").replaceAll("<","&lt;"); }
 function isSortedKeys(keys){ for(let i=1;i<keys.length;i++) if(keys[i-1] > keys[i]) return false; return true; }
-function currentKeys(){ return Array.from(listEl.querySelectorAll(".item")).map(el => Number(el.dataset.key)); }
+function currentKeys(){ 
+  return Array.from(listEl.querySelectorAll(".item")).map(el => keyOrderMap[el.dataset.key] || 0); 
+}
 function currentWids(){ return Array.from(listEl.querySelectorAll(".item")).map(el => Number(el.dataset.wid)); }
 function inversionCount(keys){
   let inv=0; for(let i=0;i<keys.length;i++) for(let j=i+1;j<keys.length;j++) if(keys[i] > keys[j]) inv++; return inv;
@@ -1578,9 +1611,15 @@ hudToggle.addEventListener("change", () => updateHud());
 /* 게임 메인 */
 function renderList(){
   listEl.innerHTML="";
+  keyOrderMap = {}; // Reset mapping
   items.forEach(it=>{
     const d=document.createElement("div");
-    d.className="item"; d.dataset.key=it.key; d.dataset.wid=it.wid;
+    d.className="item"; 
+    // Generate random ID (not related to order at all)
+    const randomId = Math.random().toString(36).substr(2, 9);
+    d.dataset.key = randomId;
+    keyOrderMap[randomId] = it.key; // Store actual order in memory only
+    d.dataset.wid=it.wid;
     d.innerHTML=`<div class="label">${escapeHtml(it.label)}</div><div class="handle">≡</div>`;
     listEl.appendChild(d);
   });
@@ -1611,6 +1650,7 @@ async function startRun(){
       showToast("게임 시작 실패"); return;
     }
   } catch(e) { showToast("서버 연결 실패"); return; }
+  
   try{
     const pool = koPool;
     const picked = sampleUnique(pool, N);
@@ -1669,6 +1709,15 @@ function initSortable(){
     onEnd: (evt) => {
       dragging=false; stopScrollLoop(); document.body.style.cursor="";
       if(evt.oldIndex!==evt.newIndex){
+        // Anti-macro: check drag speed
+        const now = performance.now();
+        if(lastDragTime && (now - lastDragTime) < 50){
+          showToast('⚠️ 너무 빠른 조작이 감지되었습니다');
+          location.reload(); // Reset game
+          return;
+        }
+        lastDragTime = now;
+        
         const keys = currentKeys();
         const currInv = inversionCount(keys);
         logAction("MOVE", evt.item.dataset.wid, evt.oldIndex, evt.newIndex, currInv, orderBeforeMove);
@@ -1677,6 +1726,23 @@ function initSortable(){
       }
     }
   });
+  
+  // Anti-cheat: Detect unauthorized DOM manipulation (bookmarklet scripts)
+  if(!window.listObserver){
+    window.listObserver = new MutationObserver((mutations) => {
+      if(!dragging && started && !finished){
+        // DOM changed while not dragging = cheating
+        for(let m of mutations){
+          if(m.type === 'childList' && m.addedNodes.length > 0){
+            showToast('🚫 비정상적인 조작이 감지되었습니다');
+            location.reload();
+            return;
+          }
+        }
+      }
+    });
+    window.listObserver.observe(listEl, { childList: true });
+  }
 }
 
 function logAction(act, wid, from, to, currInv, extraInfo){

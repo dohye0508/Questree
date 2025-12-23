@@ -98,6 +98,48 @@ if ($inputPass === $adminPass) {
         header("Location: admin.php?pass=$inputPass&msg=$msg");
         exit;
     }
+    
+    // 5. Delete Individual Ranking
+    if (isset($_POST['delete_ranking'])) {
+        $mode = $_POST['delete_mode'] ?? '';
+        $idx = intval($_POST['delete_idx'] ?? -1);
+        $rankings = file_exists($rankFile) ? json_decode(file_get_contents($rankFile), true) : [];
+        if ($mode && isset($rankings[$mode][$idx])) {
+            array_splice($rankings[$mode], $idx, 1);
+            file_put_contents($rankFile, json_encode($rankings, JSON_UNESCAPED_UNICODE), LOCK_EX);
+            $msg = urlencode('🗑️ 랭킹 기록 삭제 완료');
+        } else {
+            $msg = urlencode('❌ 삭제 실패');
+        }
+        header("Location: admin.php?pass=$inputPass&msg=$msg");
+        exit;
+    }
+    
+    // 6. Bulk Delete Rankings
+    if (isset($_POST['bulk_delete'])) {
+        $toDelete = $_POST['delete_items'] ?? [];
+        $rankings = file_exists($rankFile) ? json_decode(file_get_contents($rankFile), true) : [];
+        $count = 0;
+        // Group by mode and sort indices descending to delete from end first
+        $byMode = [];
+        foreach ($toDelete as $item) {
+            list($mode, $idx) = explode('|', $item);
+            $byMode[$mode][] = intval($idx);
+        }
+        foreach ($byMode as $mode => $indices) {
+            rsort($indices); // Delete from end first
+            foreach ($indices as $idx) {
+                if (isset($rankings[$mode][$idx])) {
+                    array_splice($rankings[$mode], $idx, 1);
+                    $count++;
+                }
+            }
+        }
+        file_put_contents($rankFile, json_encode($rankings, JSON_UNESCAPED_UNICODE), LOCK_EX);
+        $msg = urlencode("🗑️ {$count}개 기록 삭제 완료");
+        header("Location: admin.php?pass=$inputPass&msg=$msg");
+        exit;
+    }
 }
 
 if ($inputPass !== $adminPass) {
@@ -181,12 +223,17 @@ $rankings = file_exists($rankFile) ? json_decode(file_get_contents($rankFile), t
 
     <h2>🏆 Rankings</h2>
     <?php if($rankings): ?>
+        <form method="POST" id="bulkDeleteForm">
+            <input type="hidden" name="pass" value="<?= htmlspecialchars($inputPass) ?>">
+            <input type="hidden" name="bulk_delete" value="1">
+            <button type="submit" onclick="return confirm('선택한 기록들을 삭제하시겠습니까?');" style="background:#ff4444; color:white; border:none; padding:8px 15px; cursor:pointer; margin-bottom:10px;">🗑️ 선택 삭제</button>
         <?php foreach($rankings as $mode => $list): ?>
-            <h3><?= htmlspecialchars($mode) ?></h3>
+            <h3><?= htmlspecialchars($mode) ?> <button type="button" onclick="toggleAll('<?= $mode ?>')" style="font-size:12px; padding:2px 6px;">전체선택</button></h3>
             <table>
-                <tr><th>Rank</th><th>Name</th><th>Time</th></tr>
+                <tr><th><input type="checkbox" onclick="toggleAll('<?= $mode ?>')"></th><th>Rank</th><th>Name</th><th>Time</th></tr>
                 <?php foreach($list as $i => $row): ?>
                 <tr>
+                    <td><input type="checkbox" name="delete_items[]" value="<?= $mode ?>|<?= $i ?>" class="check-<?= $mode ?>"></td>
                     <td><?= $i + 1 ?></td>
                     <td><?= htmlspecialchars($row['name']) ?></td>
                     <td><strong><?= htmlspecialchars($row['time']) ?>s</strong></td>
@@ -194,6 +241,14 @@ $rankings = file_exists($rankFile) ? json_decode(file_get_contents($rankFile), t
                 <?php endforeach; ?>
             </table>
         <?php endforeach; ?>
+        </form>
+        <script>
+        function toggleAll(mode) {
+            const checkboxes = document.querySelectorAll('.check-' + mode);
+            const allChecked = Array.from(checkboxes).every(cb => cb.checked);
+            checkboxes.forEach(cb => cb.checked = !allChecked);
+        }
+        </script>
     <?php else: ?>
         <p>No rankings data yet.</p>
     <?php endif; ?>
