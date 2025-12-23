@@ -6,6 +6,10 @@ header("Access-Control-Allow-Headers: Content-Type");
 
 session_start();
 
+// Load secret key
+$tokenSecret = "default_secret_key";
+if (file_exists('secret.php')) { include 'secret.php'; }
+
 $tokensFile = '../data/game_tokens.json';
 
 // Ensure data directory exists
@@ -29,19 +33,36 @@ function saveTokens($tokens) {
     file_put_contents($tokensFile, json_encode($tokens), LOCK_EX);
 }
 
+// Generate signed token
+function generateSignedToken($userId, $mode, $secret) {
+    $data = $userId . '|' . $mode . '|' . time() . '|' . bin2hex(random_bytes(8));
+    $signature = hash_hmac('sha256', $data, $secret);
+    return $data . '.' . substr($signature, 0, 16); // token.signature
+}
+
+// Verify token signature
+function verifyTokenSignature($token, $secret) {
+    $parts = explode('.', $token);
+    if (count($parts) !== 2) return false;
+    $data = $parts[0];
+    $sig = $parts[1];
+    $expectedSig = substr(hash_hmac('sha256', $data, $secret), 0, 16);
+    return hash_equals($expectedSig, $sig);
+}
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $action = $_POST['action'] ?? '';
     $userId = $_POST['user_id'] ?? '';
     $mode = $_POST['mode'] ?? '';
     
     if ($action === 'start') {
-        // Generate new token
+        // Generate new signed token
         if (!$userId || !$mode) {
             echo json_encode(['success' => false, 'error' => 'Missing user_id or mode']);
             exit;
         }
         
-        $token = $userId . '_' . time() . '_' . bin2hex(random_bytes(8));
+        $token = generateSignedToken($userId, $mode, $tokenSecret);
         
         $tokens = loadTokens();
         $tokens[$token] = [
@@ -61,6 +82,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         
         if (!$token) {
             echo json_encode(['success' => false, 'error' => 'No token']);
+            exit;
+        }
+        
+        // Verify token signature first (anti-forge)
+        if (!verifyTokenSignature($token, $tokenSecret)) {
+            echo json_encode(['success' => false, 'error' => 'Invalid token signature - forged token detected']);
             exit;
         }
         
