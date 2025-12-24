@@ -2210,7 +2210,7 @@ async function refreshLobbyChat(){
         if(data.success && data.chat){
             const log = document.getElementById('lobbyChatLog');
             if(log){
-                log.innerHTML = data.chat.map(c => `<div><b>${c.name}:</b> ${c.msg}</div>`).join('');
+                log.innerHTML = data.chat.map(c => `<div><b>${escapeHtml(c.name)}:</b> ${escapeHtml(c.msg)}</div>`).join('');
                 log.scrollTop = log.scrollHeight;
             }
         }
@@ -2261,10 +2261,10 @@ window.refreshRoomList = async function(){
             newHtml = data.rooms.map(r => `
                 <div style="display:flex; justify-content:space-between; align-items:center; padding:12px; border:1px solid #e2e8f0; border-radius:8px; margin-bottom:8px;">
                     <div>
-                        <div style="font-weight:600;">${r.has_password ? '🔒 ' : ''}${r.title}</div>
+                        <div style="font-weight:600;">${r.has_password ? '🔒 ' : ''}${escapeHtml(r.title)}</div>
                         <div style="font-size:12px; color:#64748b;">${modeLabels[r.mode] || r.mode} | ${r.current_players}/${r.max_players}명</div>
                     </div>
-                    <button onclick="joinRoom('${r.code}', ${r.has_password})" style="padding:8px 16px; background:var(--primary); color:white; border:none; border-radius:6px; cursor:pointer;">입장</button>
+                    <button onclick="joinRoom('${escapeHtml(r.code)}', ${r.has_password})" style="padding:8px 16px; background:var(--primary); color:white; border:none; border-radius:6px; cursor:pointer;">입장</button>
                 </div>
             `).join('');
         } else {
@@ -2458,7 +2458,7 @@ function startPvpPolling(){
                 const chatLog = document.getElementById('pvpChatLog');
                 if(chatLog){
                     chatLog.innerHTML = data.chat.map(c => 
-                        `<div><b>${c.name}:</b> ${c.msg}</div>`
+                        `<div><b>${escapeHtml(c.name)}:</b> ${escapeHtml(c.msg)}</div>`
                     ).join('');
                     chatLog.scrollTop = chatLog.scrollHeight;
                 }
