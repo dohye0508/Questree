@@ -1611,6 +1611,7 @@ hudToggle.addEventListener("change", () => updateHud());
 
 /* 게임 메인 */
 function renderList(){
+  window.isRendering = true;
   listEl.innerHTML="";
   keyOrderMap = {}; // Reset mapping
   items.forEach(it=>{
@@ -1624,6 +1625,7 @@ function renderList(){
     d.innerHTML=`<div class="label">${escapeHtml(it.label)}</div><div class="handle">≡</div>`;
     listEl.appendChild(d);
   });
+  window.isRendering = false;
 }
 function ensureNotAlreadySorted(arr){
   const check = (list) => { for(let i=1;i<list.length;i++) if(list[i-1].key > list[i].key) return false; return true; };
@@ -1733,6 +1735,8 @@ function initSortable(){
     window.listObserver = new MutationObserver((mutations) => {
       // Skip for PVP mode (DOM is manipulated by game logic)
       if(typeof pvpMode !== 'undefined' && pvpMode) return;
+      // Skip during legitimate rendering
+      if(window.isRendering) return;
       
       if(!dragging && started && !finished){
         // DOM changed while not dragging = cheating
