@@ -61,25 +61,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     // Validate move times for cheating patterns
     $moveTimes = json_decode($_POST['move_times'] ?? '[]', true);
-    if (is_array($moveTimes) && count($moveTimes) > 0) {
+    if (is_array($moveTimes) && count($moveTimes) > 10) { // Only validate if many moves
+        // Convert string times to floats
+        $moveTimes = array_map('floatval', $moveTimes);
+        
         // Check for suspicious patterns: too many moves at same timestamp
         $timeCounts = array_count_values(array_map(function($t) {
-            return round($t, 2); // Round to 2 decimal places
+            return round($t, 1); // Round to 1 decimal place (more lenient)
         }, $moveTimes));
         
         $maxSameTime = max($timeCounts);
-        // If more than 5 moves have the exact same timestamp = cheating
-        if ($maxSameTime > 5) {
+        // If more than 20 moves have the same timestamp = cheating
+        if ($maxSameTime > 20) {
             echo json_encode(['error' => 'Suspicious move pattern detected']);
             exit;
         }
         
         // Check average time between moves
         if (count($moveTimes) > 1) {
+            sort($moveTimes);
             $totalTime = end($moveTimes) - reset($moveTimes);
             $avgTimeBetweenMoves = $totalTime / (count($moveTimes) - 1);
-            // If average time between moves < 50ms = too fast
-            if ($avgTimeBetweenMoves < 0.05) {
+            // If average time between moves < 30ms = too fast (more lenient)
+            if ($avgTimeBetweenMoves < 0.03 && count($moveTimes) > 20) {
                 echo json_encode(['error' => 'Move speed too fast']);
                 exit;
             }
