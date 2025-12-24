@@ -59,6 +59,33 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         exit;
     }
 
+    // Validate move times for cheating patterns
+    $moveTimes = json_decode($_POST['move_times'] ?? '[]', true);
+    if (is_array($moveTimes) && count($moveTimes) > 0) {
+        // Check for suspicious patterns: too many moves at same timestamp
+        $timeCounts = array_count_values(array_map(function($t) {
+            return round($t, 2); // Round to 2 decimal places
+        }, $moveTimes));
+        
+        $maxSameTime = max($timeCounts);
+        // If more than 5 moves have the exact same timestamp = cheating
+        if ($maxSameTime > 5) {
+            echo json_encode(['error' => 'Suspicious move pattern detected']);
+            exit;
+        }
+        
+        // Check average time between moves
+        if (count($moveTimes) > 1) {
+            $totalTime = end($moveTimes) - reset($moveTimes);
+            $avgTimeBetweenMoves = $totalTime / (count($moveTimes) - 1);
+            // If average time between moves < 50ms = too fast
+            if ($avgTimeBetweenMoves < 0.05) {
+                echo json_encode(['error' => 'Move speed too fast']);
+                exit;
+            }
+        }
+    }
+
     $data = [];
     if (file_exists($dataFile)) {
         $data = json_decode(file_get_contents($dataFile), true);

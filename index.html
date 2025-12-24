@@ -1370,6 +1370,10 @@ async function getRanks(modeKey){
 
 async function saveRanking(modeKey, name, timeVal){
   try {
+    // Extract move timestamps for server validation
+    const moveTimes = actionLog.filter(a => a.action === 'MOVE').map(a => a.time);
+    const moveTimesJson = JSON.stringify(moveTimes);
+    
     const res = await fetch(`${API_BASE}/rankings.php`, {
       method: "POST",
       headers: { "Content-Type": "application/x-www-form-urlencoded" },
@@ -1377,7 +1381,8 @@ async function saveRanking(modeKey, name, timeVal){
         mode: modeKey,
         name: name,
         time: timeVal,
-        token: gameToken || ''
+        token: gameToken || '',
+        move_times: moveTimesJson
       })
     });
     const data = await res.json();
