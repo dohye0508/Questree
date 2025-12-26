@@ -977,24 +977,41 @@ button:disabled{ opacity: 0.5; cursor: not-allowed; transform: none !important; 
   });
   // Block right-click
   document.addEventListener('contextmenu', function(e){ e.preventDefault(); return false; });
-  // Detect DevTools - freeze when open, refresh when closed
+  // Imporved DevTools detection - multiple methods
   let devtoolsOpen = false;
-  const threshold = 160;
-  setInterval(function(){
-    const widthDiff = window.outerWidth - window.innerWidth > threshold;
-    const heightDiff = window.outerHeight - window.innerHeight > threshold;
-    const isOpen = widthDiff || heightDiff;
-    if(isOpen && !devtoolsOpen){
+  
+  function onDevToolsDetected() {
+    if(!devtoolsOpen) {
       devtoolsOpen = true;
-      if(typeof gameToken !== 'undefined') gameToken = null; // Invalidate token
+      if(typeof gameToken !== 'undefined') gameToken = null;
       document.body.style.filter = 'blur(10px)';
-      document.body.style.pointerEvents = 'none';
       alert('🚫 개발자 도구가 감지되었습니다. 닫아주세요.');
-    } else if(!isOpen && devtoolsOpen){
-      devtoolsOpen = false;
-      location.reload(); // Refresh when closed
     }
-  }, 300);
+  }
+  
+  function onDevToolsClosed() {
+    if(devtoolsOpen) {
+      devtoolsOpen = false;
+      location.reload();
+    }
+  }
+  
+  // Method 1: Debugger timing (more reliable)
+  function checkDebugger() {
+    const start = performance.now();
+    debugger;
+    const end = performance.now();
+    if(end - start > 100) {
+      onDevToolsDetected();
+    } else if(devtoolsOpen) {
+      onDevToolsClosed();
+    }
+  }
+  
+  // Only use debugger timing check (window size is unreliable)
+  setInterval(function(){
+    checkDebugger();
+  }, 1000);
 })();
 
 /* 설정 */
@@ -1595,7 +1612,12 @@ function autoScrollByPointer(y){
 }
 function startScrollLoop(){ if(scrollLoopId) clearInterval(scrollLoopId); scrollLoopId=setInterval(()=>{ if(dragging&&lastClientY!==null) autoScrollByPointer(lastClientY); }, 12); }
 function stopScrollLoop(){ if(scrollLoopId) clearInterval(scrollLoopId); scrollLoopId=null; }
-document.addEventListener("touchmove",e=>{if(dragging&&e.touches[0])lastClientY=e.touches[0].clientY;},{passive:true});
+document.addEventListener("touchmove",e=>{
+  if(dragging&&e.touches[0]){
+    lastClientY=e.touches[0].clientY;
+    if(e.cancelable) e.preventDefault(); 
+  }
+},{passive:false});
 document.addEventListener("mousemove",e=>{if(dragging)lastClientY=e.clientY;},{passive:true});
 
 /* HUD Control */

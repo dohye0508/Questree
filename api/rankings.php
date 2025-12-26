@@ -61,32 +61,40 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     // Validate move times for cheating patterns
     $moveTimes = json_decode($_POST['move_times'] ?? '[]', true);
-    if (is_array($moveTimes) && count($moveTimes) > 10) { // Only validate if many moves
+    if (is_array($moveTimes) && count($moveTimes) > 0) {
         // Convert string times to floats
         $moveTimes = array_map('floatval', $moveTimes);
         
         // Check for suspicious patterns: too many moves at same timestamp
         $timeCounts = array_count_values(array_map(function($t) {
-            return round($t, 1); // Round to 1 decimal place (more lenient)
+            return strval(round($t, 1)); // Round to 1 decimal, convert to string
         }, $moveTimes));
         
         $maxSameTime = max($timeCounts);
-        // If more than 20 moves have the same timestamp = cheating
-        if ($maxSameTime > 20) {
-            echo json_encode(['error' => 'Suspicious move pattern detected']);
+        // If more than 3 moves have the same timestamp = cheating
+        if ($maxSameTime > 3) {
+            echo json_encode(['error' => '비정상적인 이동 패턴이 감지되었습니다']);
             exit;
         }
+    }
+
+    // Verify final order hash matches server's stored hash
+    $finalOrder = json_decode($_POST['final_order'] ?? '[]', true);
+    
+    // Get sorted hash from token
+    $tokensFile = '../data/game_tokens.json';
+    $tokens = file_exists($tokensFile) ? json_decode(file_get_contents($tokensFile), true) : [];
+    
+    if (isset($tokens[$token]) && isset($tokens[$token]['sorted_hash'])) {
+        $storedHash = $tokens[$token]['sorted_hash'];
         
-        // Check average time between moves
-        if (count($moveTimes) > 1) {
-            sort($moveTimes);
-            $totalTime = end($moveTimes) - reset($moveTimes);
-            $avgTimeBetweenMoves = $totalTime / (count($moveTimes) - 1);
-            // If average time between moves < 30ms = too fast (more lenient)
-            if ($avgTimeBetweenMoves < 0.03 && count($moveTimes) > 20) {
-                echo json_encode(['error' => 'Move speed too fast']);
-                exit;
-            }
+        // Compute hash of final order
+        $finalHash = hash('sha256', implode('|', $finalOrder));
+        
+        // Compare hashes
+        if ($finalHash !== $storedHash) {
+            echo json_encode(['error' => '정렬 순서 검증 실패 - 치팅이 감지되었습니다']);
+            exit;
         }
     }
 

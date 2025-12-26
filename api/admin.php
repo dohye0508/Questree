@@ -1,4 +1,5 @@
 <?php
+session_start();
 header('Content-Type: text/html; charset=utf-8');
 
 $userFile = '../data/users.json';
@@ -9,10 +10,16 @@ $adminPass = "1234"; // Fallback default
 if (file_exists('secret.php')) {
     include 'secret.php';
 }
-$inputPass = $_POST['pass'] ?? $_GET['pass'] ?? '';
+
+// Session-based auth (password not exposed in URL)
+$inputPass = $_POST['pass'] ?? '';
+if ($inputPass === $adminPass) {
+    $_SESSION['admin_auth'] = true;
+}
+$isAuthenticated = isset($_SESSION['admin_auth']) && $_SESSION['admin_auth'] === true;
 
 // Handle Actions (MUST BE BEFORE HTML OUTPUT for Headers to work)
-if ($inputPass === $adminPass) {
+if ($isAuthenticated) {
     // 1. Download All Logs (ZIP) - MOVED TO TOP
     if (isset($_POST['download_zip'])) {
         $zipname = 'all_logs_' . date('Ymd_His') . '.zip';
@@ -68,10 +75,12 @@ if ($inputPass === $adminPass) {
         }
 
         if ($target && move_uploaded_file($f['tmp_name'], $target)) {
-            echo "<script>alert('파일 업로드 성공: {$f['name']}');</script>";
+            $msg = urlencode("✅ 파일 업로드 성공: {$f['name']}");
         } else {
-            echo "<script>alert('업로드 실패');</script>";
+            $msg = urlencode("❌ 업로드 실패");
         }
+        header("Location: admin.php?msg=$msg");
+        exit;
     }
 
     // 3. Delete Log
@@ -79,8 +88,12 @@ if ($inputPass === $adminPass) {
         $fileToDelete = '../data/logs/' . basename($_POST['delete_log']);
         if (file_exists($fileToDelete)) {
             unlink($fileToDelete);
-            echo "<script>alert('로그 삭제 완료');</script>";
+            $msg = urlencode("🗑️ 로그 삭제 완료");
+        } else {
+            $msg = urlencode("❌ 파일을 찾을 수 없습니다");
         }
+        header("Location: admin.php?msg=$msg");
+        exit;
     }
     
     // 4. Reset Data (with PRG pattern to prevent refresh re-submit)
@@ -95,7 +108,7 @@ if ($inputPass === $adminPass) {
             $msg = urlencode('👥 사용자 데이터 초기화 완료');
         }
         // PRG Redirect to prevent refresh re-submission
-        header("Location: admin.php?pass=$inputPass&msg=$msg");
+        header("Location: admin.php?msg=$msg");
         exit;
     }
     
@@ -111,7 +124,7 @@ if ($inputPass === $adminPass) {
         } else {
             $msg = urlencode('❌ 삭제 실패');
         }
-        header("Location: admin.php?pass=$inputPass&msg=$msg");
+        header("Location: admin.php?msg=$msg");
         exit;
     }
     
@@ -142,7 +155,7 @@ if ($inputPass === $adminPass) {
     }
 }
 
-if ($inputPass !== $adminPass) {
+if (!$isAuthenticated) {
     echo '<form method="POST">Code: <input type="password" name="pass"><input type="submit" value="Login"></form>';
     exit;
 }
@@ -167,7 +180,13 @@ $rankings = file_exists($rankFile) ? json_decode(file_get_contents($rankFile), t
 </head>
 <body>
     <?php if(isset($_GET['msg']) && $_GET['msg']): ?>
-    <script>alert(decodeURIComponent('<?php echo $_GET['msg']; ?>'));</script>
+    <script>
+        alert(decodeURIComponent('<?php echo $_GET['msg']; ?>'));
+        // Remove msg from URL to prevent repeated alerts on refresh
+        const url = new URL(window.location);
+        url.searchParams.delete('msg');
+        history.replaceState({}, '', url);
+    </script>
     <?php endif; ?>
     <h1>📊 Data Viewer</h1>
     
@@ -175,18 +194,18 @@ $rankings = file_exists($rankFile) ? json_decode(file_get_contents($rankFile), t
     <div style="background:#fff3cd; padding:15px; border:1px solid #ffeeba; margin-bottom:20px;">
         <h3>⚠️ Danger Zone & Actions</h3>
         <form method="POST" style="display:inline;">
-            <input type="hidden" name="pass" value="<?= htmlspecialchars($inputPass) ?>">
+
             <input type="hidden" name="download_zip" value="1">
             <button type="submit" style="background:#4CAF50; color:white; border:none; padding:8px 15px; cursor:pointer; margin-right:10px;">📦 전체 로그 다운로드 (ZIP)</button>
         </form>
 
         <form method="POST" style="display:inline;" onsubmit="return confirm('정말 모든 랭킹 데이터를 삭제하시겠습니까?');">
-            <input type="hidden" name="pass" value="<?= htmlspecialchars($inputPass) ?>">
+
             <input type="hidden" name="reset_target" value="rankings">
             <button type="submit" style="background:#ff4444; color:white; border:none; padding:8px 15px; cursor:pointer;">🏆 랭킹 초기화</button>
         </form>
         <form method="POST" style="display:inline; margin-left:10px;" onsubmit="return confirm('정말 모든 사용자 정보를 삭제하시겠습니까?');">
-            <input type="hidden" name="pass" value="<?= htmlspecialchars($inputPass) ?>">
+
             <input type="hidden" name="reset_target" value="users">
             <button type="submit" style="background:#ff4444; color:white; border:none; padding:8px 15px; cursor:pointer;">👥 회원 초기화</button>
         </form>
@@ -196,7 +215,7 @@ $rankings = file_exists($rankFile) ? json_decode(file_get_contents($rankFile), t
     <h2>🚀 Server File Update</h2>
     <p>파일질라 없이 여기서 파일(`index.html`, `.php`, `.js`)을 업로드하면 덮어씌워집니다.</p>
     <form method="POST" enctype="multipart/form-data" style="background:#f9f9f9; padding:15px; border:1px solid #ddd;">
-        <input type="hidden" name="pass" value="<?= htmlspecialchars($inputPass) ?>">
+
         <input type="file" name="update_file" required>
         <button type="submit" onclick="return confirm('정말 덮어씌우시겠습니까?');">Upload & Update</button>
     </form>
@@ -224,7 +243,7 @@ $rankings = file_exists($rankFile) ? json_decode(file_get_contents($rankFile), t
     <h2>🏆 Rankings</h2>
     <?php if($rankings): ?>
         <form method="POST" id="bulkDeleteForm">
-            <input type="hidden" name="pass" value="<?= htmlspecialchars($inputPass) ?>">
+
             <input type="hidden" name="bulk_delete" value="1">
             <button type="submit" onclick="return confirm('선택한 기록들을 삭제하시겠습니까?');" style="background:#ff4444; color:white; border:none; padding:8px 15px; cursor:pointer; margin-bottom:10px;">🗑️ 선택 삭제</button>
         <?php foreach($rankings as $mode => $list): ?>
@@ -264,7 +283,7 @@ $rankings = file_exists($rankFile) ? json_decode(file_get_contents($rankFile), t
             $url = '../data/logs/' . rawurlencode($f);
             echo "<li style='margin-bottom:5px;'>";
             echo "<form method='POST' style='display:inline;'>";
-            echo "<input type='hidden' name='pass' value='" . htmlspecialchars($inputPass) . "'>";
+
             echo "<input type='hidden' name='delete_log' value='" . htmlspecialchars($f) . "'>";
             echo "<button type='submit' style='background:#ff4444; color:white; border:none; padding:2px 5px; cursor:pointer; margin-right:5px;' onclick=\"return confirm('삭제하시겠습니까?');\">X</button>";
             echo "</form>";

@@ -4,3 +4,13 @@ server_logs/
 .DS_Store
 rankings.json
 data/
+
+# Experiment logs
+sorted_exp_*.csv
+*_Actions_Enhanced.csv
+*_Words.csv
+
+# Temp files
+temp_*.html
+*.log
+*.tmp
