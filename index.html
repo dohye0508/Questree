@@ -64,16 +64,8 @@ body.theme-christmas {
 .stars { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 85%; pointer-events: none; z-index: 0; }
 body.theme-christmas .stars { display: block; }
 .star { position: absolute; width: 2px; height: 2px; background: white; border-radius: 50%; animation: twinkle 3s ease-in-out infinite; }
-.star:nth-child(1) { top: 5%; left: 8%; animation-delay: 0s; }
-.star:nth-child(2) { top: 12%; left: 22%; width: 3px; height: 3px; animation-delay: 0.5s; }
-.star:nth-child(3) { top: 8%; left: 35%; animation-delay: 1s; }
-.star:nth-child(4) { top: 15%; left: 48%; animation-delay: 1.5s; }
-.star:nth-child(5) { top: 6%; left: 62%; width: 3px; height: 3px; animation-delay: 2s; }
-.star:nth-child(6) { top: 38%; left: 75%; animation-delay: 0.3s; }
-.star:nth-child(7) { top: 10%; left: 88%; animation-delay: 0.8s; }
-.star:nth-child(8) { top: 42%; left: 15%; animation-delay: 1.2s; }
-.star:nth-child(9) { top: 45%; left: 55%; width: 3px; height: 3px; animation-delay: 1.8s; }
-.star:nth-child(10) { top: 20%; left: 92%; animation-delay: 2.2s; }
+
+
 @keyframes twinkle { 0%, 100% { opacity: 0.3; transform: scale(1); } 50% { opacity: 1; transform: scale(1.2); } }
 
 .snowflakes { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 100; }
@@ -759,12 +751,7 @@ button:disabled{ opacity: 0.5; cursor: not-allowed; transform: none !important; 
 <body>
 
 <!-- 크리스마스 장식 -->
-<div class="stars">
-  <div class="star"></div><div class="star"></div><div class="star"></div>
-  <div class="star"></div><div class="star"></div><div class="star"></div>
-  <div class="star"></div><div class="star"></div><div class="star"></div>
-  <div class="star"></div>
-</div>
+<div class="stars"></div>
 <div class="snowflakes">
   <div class="snowflake">❄</div><div class="snowflake">❅</div><div class="snowflake">❆</div>
   <div class="snowflake">❄</div><div class="snowflake">❅</div><div class="snowflake">❆</div>
@@ -3530,6 +3517,22 @@ if(themeSelector) {
       localStorage.removeItem('questree_theme');
     }
   });
+}
+
+// 크리스마스 배경 별 생성 (50개)
+const starsContainer = document.querySelector('.stars');
+if(starsContainer) {
+  for(let i=0; i<50; i++) {
+    const star = document.createElement('div');
+    star.className = 'star';
+    star.style.top = Math.random() * 80 + '%'; // 상단 80% 영역 내
+    star.style.left = Math.random() * 100 + '%';
+    const size = Math.random() * 2 + 1; // 1px ~ 3px
+    star.style.width = size + 'px';
+    star.style.height = size + 'px';
+    star.style.animationDelay = (Math.random() * 3) + 's';
+    starsContainer.appendChild(star);
+  }
 }
 
 // 산타 랜덤 점프 (1~10초 간격)
