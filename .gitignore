@@ -14,3 +14,15 @@ sorted_exp_*.csv
 temp_*.html
 *.log
 *.tmp
+
+# Unnecessary asset source folders
+Free christmas pack by RonnieTheZombie/
+Moon_Phases_128x128/
+XmasCatFree/
+santa_sheets/
+winter free/
+
+# Backup/test files
+gemini.html
+theme_test.html
+.vscode/

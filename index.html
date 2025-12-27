@@ -28,6 +28,117 @@
   --radius-sm: 8px;
 }
 
+/* 다크 테마 */
+body.theme-dark {
+  --bg: #09090b;
+  --card: #18181b;
+  --text: #f4f4f5;
+  --muted: #a1a1aa;
+  --border: #27272a;
+  --primary: #10b981;
+  --primary-dark: #059669;
+  --primary-light: #34d399;
+  --accent: #064e3b;
+  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.3);
+  --shadow: 0 4px 6px -1px rgb(0 0 0 / 0.4), 0 2px 4px -2px rgb(0 0 0 / 0.3);
+  --shadow-lg: 0 20px 25px -5px rgb(0 0 0 / 0.5), 0 8px 10px -6px rgb(0 0 0 / 0.4);
+}
+
+/* 크리스마스 테마 */
+body.theme-christmas {
+  background: linear-gradient(to bottom, #020617 0%, #0f172a 50%, #1e3a8a 100%);
+  --bg: #020617;
+  --card: #1e293b;
+  --text: #f1f5f9;
+  --muted: #94a3b8;
+  --border: #334155;
+  --primary: #ef4444;
+  --primary-dark: #dc2626;
+  --primary-light: #f87171;
+  --accent: #166534;
+  --shadow: 0 10px 30px -5px rgba(0,0,0,0.5);
+  --shadow-lg: 0 25px 50px -12px rgba(0,0,0,0.6);
+}
+
+/* 크리스마스 장식 */
+.stars { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 85%; pointer-events: none; z-index: 0; }
+body.theme-christmas .stars { display: block; }
+.star { position: absolute; width: 2px; height: 2px; background: white; border-radius: 50%; animation: twinkle 3s ease-in-out infinite; }
+.star:nth-child(1) { top: 5%; left: 8%; animation-delay: 0s; }
+.star:nth-child(2) { top: 12%; left: 22%; width: 3px; height: 3px; animation-delay: 0.5s; }
+.star:nth-child(3) { top: 8%; left: 35%; animation-delay: 1s; }
+.star:nth-child(4) { top: 15%; left: 48%; animation-delay: 1.5s; }
+.star:nth-child(5) { top: 6%; left: 62%; width: 3px; height: 3px; animation-delay: 2s; }
+.star:nth-child(6) { top: 38%; left: 75%; animation-delay: 0.3s; }
+.star:nth-child(7) { top: 10%; left: 88%; animation-delay: 0.8s; }
+.star:nth-child(8) { top: 42%; left: 15%; animation-delay: 1.2s; }
+.star:nth-child(9) { top: 45%; left: 55%; width: 3px; height: 3px; animation-delay: 1.8s; }
+.star:nth-child(10) { top: 20%; left: 92%; animation-delay: 2.2s; }
+@keyframes twinkle { 0%, 100% { opacity: 0.3; transform: scale(1); } 50% { opacity: 1; transform: scale(1.2); } }
+
+.snowflakes { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 100; }
+body.theme-christmas .snowflakes { display: block; }
+.snowflake { position: absolute; top: -20px; color: white; animation: snowfall linear infinite; opacity: 0.8; text-shadow: 0 0 5px white; }
+.snowflake:nth-child(1) { left: 5%; animation-duration: 10s; font-size: 16px; }
+.snowflake:nth-child(2) { left: 15%; animation-duration: 8s; animation-delay: 1s; font-size: 20px; }
+.snowflake:nth-child(3) { left: 25%; animation-duration: 12s; animation-delay: 3s; font-size: 14px; }
+.snowflake:nth-child(4) { left: 35%; animation-duration: 9s; animation-delay: 0.5s; font-size: 18px; }
+.snowflake:nth-child(5) { left: 45%; animation-duration: 7s; animation-delay: 2s; font-size: 22px; }
+.snowflake:nth-child(6) { left: 55%; animation-duration: 11s; animation-delay: 4s; font-size: 12px; }
+.snowflake:nth-child(7) { left: 65%; animation-duration: 8s; animation-delay: 1.5s; font-size: 16px; }
+.snowflake:nth-child(8) { left: 75%; animation-duration: 10s; animation-delay: 2.5s; font-size: 20px; }
+.snowflake:nth-child(9) { left: 85%; animation-duration: 9s; animation-delay: 0s; font-size: 14px; }
+.snowflake:nth-child(10) { left: 95%; animation-duration: 6s; animation-delay: 3.5s; font-size: 18px; }
+@keyframes snowfall { 0% { transform: translateY(-20px) rotate(0deg); opacity: 1; } 100% { transform: translateY(100vh) rotate(360deg); opacity: 0.3; } }
+
+/* 달 */
+.moon { display: none; position: fixed; top: 8%; right: 10%; width: 80px; height: 80px; background: url('assets/moon.png') center/contain no-repeat; filter: drop-shadow(0 0 25px rgba(255, 255, 255, 0.7)) drop-shadow(0 0 50px rgba(255, 255, 255, 0.4)); z-index: 10; pointer-events: none; image-rendering: pixelated; }
+body.theme-christmas .moon { display: block; }
+
+/* 전구 장식 */
+.lights { display: none; position: fixed; top: -15px; left: 0; width: 100%; height: 40px; z-index: 50; pointer-events: none; text-align: center; white-space: nowrap; overflow: hidden; }
+body.theme-christmas .lights { display: block; }
+.light { display: inline-block; width: 14px; height: 14px; border-radius: 50%; margin: 0 20px; background: #fecaca; box-shadow: 0 5px 15px 4px #fecaca; animation: glow 1.5s infinite alternate; position: relative; }
+.light::before { content: ""; position: absolute; top: -6px; left: 3px; width: 8px; height: 8px; background: #222; border-radius: 2px; }
+.light:nth-child(2n) { background: #bbf7d0; box-shadow: 0 5px 15px 4px #bbf7d0; animation-delay: 0.5s; }
+.light:nth-child(3n) { background: #fca5a5; box-shadow: 0 5px 15px 4px #fca5a5; animation-delay: 1s; }
+.light:nth-child(4n) { background: #fbbf24; box-shadow: 0 5px 15px 4px #fbbf24; animation-delay: 1.5s; }
+@keyframes glow { 0% { opacity: 0.5; transform: scale(0.9); } 100% { opacity: 1; transform: scale(1.1); } }
+
+/* 설원 */
+.snow-landscape { display: none; position: fixed; bottom: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 1; }
+body.theme-christmas .snow-landscape { display: block; }
+.hill { position: absolute; bottom: 0; left: 0; width: 100%; background: #f8fafc; border-radius: 100% 100% 0 0; }
+.hill-3 { height: 20vh; left: -20%; width: 140%; background: #64748b; opacity: 0.5; bottom: -50px; }
+.hill-2 { height: 15vh; left: -10%; width: 120%; background: #94a3b8; opacity: 0.7; bottom: -30px; }
+.hill-1 { height: 10vh; width: 110%; left: -5%; background: linear-gradient(to top, #cbd5e1, #f1f5f9); bottom: -20px; }
+
+/* 애니메이션 트리 */
+.animated-tree { position: absolute; z-index: 15; pointer-events: none; width: 102px; height: 125px; background: url('assets/tree.png') 0 0; background-size: 816px 125px; animation: treeSparkle 0.8s steps(8) infinite; image-rendering: pixelated; }
+@keyframes treeSparkle { to { background-position: -816px 0; } }
+.tree-1 { left: 5%; bottom: 8vh; transform: scale(1.5); }
+.tree-2 { right: 8%; bottom: 9vh; transform: scale(1.3); }
+.tree-3 { left: 20%; bottom: 10vh; transform: scale(0.9); }
+.tree-4 { right: 22%; bottom: 11vh; transform: scale(1.1); }
+
+/* 산타 달리기 */
+.santa-runner { display: none; position: fixed; z-index: 20; pointer-events: none; width: 32px; height: 32px; background: url('assets/santa_run.png') 0 0; background-size: 192px 32px; animation: santaRun 0.6s steps(6) infinite, santaMove 25s linear infinite; image-rendering: pixelated; bottom: 5vh; transition: bottom 0.3s ease-out; }
+body.theme-christmas .santa-runner { display: block; }
+.santa-runner.jumping { background: url('assets/santa_jump.png') 0 0; background-size: 256px 32px; animation: santaJumpSprite 0.5s steps(8) forwards, santaMove 25s linear infinite; bottom: 15vh; }
+@keyframes santaRun { to { background-position: -192px 0; } }
+@keyframes santaJumpSprite { to { background-position: -256px 0; } }
+@keyframes santaMove { 0% { left: -50px; transform: scaleX(1) scale(2); } 49.9% { transform: scaleX(1) scale(2); } 50% { left: calc(100% + 50px); transform: scaleX(-1) scale(2); } 99.9% { transform: scaleX(-1) scale(2); } 100% { left: -50px; transform: scaleX(1) scale(2); } }
+
+/* 고양이 러너 */
+.xmascat-runner { display: none; position: fixed; z-index: 20; pointer-events: none; width: 32px; height: 32px; background: url('assets/cat_run_red.png') 0 0; background-size: 416px 32px; animation: catRun 0.7s steps(7) infinite, catMove 20s linear infinite; image-rendering: pixelated; bottom: 5vh; }
+body.theme-christmas .xmascat-runner { display: block; }
+.xmascat-runner-2 { display: none; position: fixed; z-index: 20; pointer-events: none; width: 32px; height: 32px; background: url('assets/cat_run_green.png') 0 0; background-size: 416px 32px; animation: catRun2 1.3s steps(13) infinite, catMove2 18s linear infinite; image-rendering: pixelated; bottom: 6vh; }
+body.theme-christmas .xmascat-runner-2 { display: block; }
+@keyframes catRun { to { background-position: -224px 0; } }
+@keyframes catRun2 { to { background-position: -416px 0; } }
+@keyframes catMove { 0% { right: -50px; transform: scaleX(-1) scale(2); } 49.9% { transform: scaleX(-1) scale(2); } 50% { right: calc(100% + 50px); transform: scaleX(1) scale(2); } 99.9% { transform: scaleX(1) scale(2); } 100% { right: -50px; transform: scaleX(-1) scale(2); } }
+@keyframes catMove2 { 0% { left: -50px; transform: scaleX(1) scale(2); } 49.9% { transform: scaleX(1) scale(2); } 50% { left: calc(100% + 50px); transform: scaleX(-1) scale(2); } 99.9% { transform: scaleX(-1) scale(2); } 100% { left: -50px; transform: scaleX(1) scale(2); } }
+
 *{ box-sizing:border-box; }
 html, body{ height:100%; }
 
@@ -87,16 +198,23 @@ body::before {
 }
 
 /* 게임 활성화 시 상단 정렬 및 적절한 여백 */
-/* 게임 활성화 시 상단 정렬 및 적절한 여백 */
 body:has(.card.game-active) {
   align-items: flex-start;
   padding: 16px 0;
 }
 
+/* 게임 활성화 시 크리스마스 장식 숨김 */
+body:has(.card.game-active) .snow-landscape,
+body:has(.card.game-active) .santa-runner,
+body:has(.card.game-active) .xmascat-runner,
+body:has(.card.game-active) .xmascat-runner-2 {
+  display: none !important;
+}
+
 /* 헤더 영역 */
 .header{
   padding: 16px;
-  background: white;
+  background: var(--card);
   border-bottom: 1px solid var(--border);
   border-radius: var(--radius) var(--radius) 0 0;
   flex-shrink: 0;
@@ -148,21 +266,22 @@ body:has(.card.game-active) {
 }
 
 .rank-open-btn {
-  background: white;
+  background: var(--card) !important;
   border: 1px solid var(--border);
-  color: var(--text);
-  padding: 8px 12px; /* 패딩 축소 */
+  color: var(--text) !important;
+  padding: 8px 12px;
   border-radius: 999px;
-  font-size: 13px; /* 소폭 축소 */
+  font-size: 13px;
   font-weight: 700;
-  flex-shrink: 0; /* 버튼이 찌그러지지 않게 */
+  flex-shrink: 0;
   white-space: nowrap;
   box-shadow: var(--shadow-sm);
   display: flex; align-items: center; gap: 6px;
   transition: all 0.2s;
 }
+.rank-open-btn span { color: var(--text) !important; }
 .rank-open-btn:hover {
-  background: #f8fafc;
+  background: var(--bg);
   transform: translateY(-2px);
   box-shadow: var(--shadow);
   color: var(--primary-dark);
@@ -243,7 +362,7 @@ body:has(.card.game-active) {
   left: 50%;
   transform: translateX(-50%);
   display: none; 
-  background: rgba(255, 255, 255, 0.95);
+  background: var(--card);
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
   padding: 8px 18px;
@@ -305,7 +424,7 @@ body:has(.card.game-active) {
   position: absolute;
   cursor: pointer;
   top: 0; left: 0; right: 0; bottom: 0;
-  background-color: #e2e8f0;
+  background-color: var(--border);
   transition: .3s;
   border-radius: 34px;
 }
@@ -329,7 +448,7 @@ input:checked + .slider:before { transform: translateX(14px); }
   gap:12px;
   flex-wrap:wrap;
   align-items:center;
-  background: #f8fafc;
+  background: var(--bg);
   border-bottom: 1px solid var(--border);
   transition: opacity 0.3s, max-height 0.3s;
   max-height: 200px;
@@ -377,7 +496,7 @@ input:checked + .slider:before { transform: translateX(14px); }
 .select-wrapper { position: relative; }
 select{
   appearance: none;
-  background: white;
+  background: var(--card);
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
   padding: 10px 32px 10px 14px;
@@ -412,15 +531,15 @@ button{
 button.primary{ background: var(--primary); color: white; box-shadow: 0 4px 6px -1px rgba(16, 185, 129, 0.3); }
 button.primary:hover { background: var(--primary-dark); transform: translateY(-1px); }
 button.primary:active { transform: translateY(0); }
-button.secondary{ background: white; border: 1px solid var(--border); color: var(--text); }
-button.secondary:hover { background: #f1f5f9; border-color: #cbd5e1; }
+button.secondary{ background: var(--card); border: 1px solid var(--border); color: var(--text); }
+button.secondary:hover { background: var(--bg); border-color: var(--border); }
 button:disabled{ opacity: 0.5; cursor: not-allowed; transform: none !important; box-shadow: none !important; }
 
 /* 메인 컨텐츠 */
 .contentArea {
   overflow-y: auto;
   position: relative;
-  background: #f8fafc; 
+  background: var(--bg); 
 }
 
 /* 데스크탑에서만 flex: 1 적용 */
@@ -434,7 +553,7 @@ button:disabled{ opacity: 0.5; cursor: not-allowed; transform: none !important; 
   margin: 16px;
   max-width: 600px;
   padding: 20px;
-  background: white;
+  background: var(--card);
   border-radius: var(--radius);
   border: 1px solid var(--border);
   box-shadow: var(--shadow-sm);
@@ -463,7 +582,7 @@ button:disabled{ opacity: 0.5; cursor: not-allowed; transform: none !important; 
   border: 1px solid var(--border);
   border-radius: 12px;
   padding: 14px 18px;
-  background: white;
+  background: var(--card);
   box-shadow: var(--shadow-sm);
   user-select:none;
   cursor: grab;
@@ -474,10 +593,10 @@ button:disabled{ opacity: 0.5; cursor: not-allowed; transform: none !important; 
 .item:active{ cursor: grabbing; transform: scale(0.98); }
 
 .label{ font-size: 17px; font-weight: 700; color: var(--text); }
-.handle{ font-size: 12px; color: var(--muted); background: #f1f5f9; padding: 6px 10px; border-radius: 6px; font-weight: 600; }
+.handle{ font-size: 12px; color: var(--muted); background: var(--bg); padding: 6px 10px; border-radius: 6px; font-weight: 600; }
 
 .sortable-ghost{ opacity: 0.6; background: var(--accent); border: 2px dashed var(--primary); }
-.sortable-chosen{ background: white; box-shadow: var(--shadow-lg); }
+.sortable-chosen{ background: var(--card); box-shadow: var(--shadow-lg); }
 
 /* 하단 저작권 표시 */
 .footer {
@@ -485,7 +604,7 @@ button:disabled{ opacity: 0.5; cursor: not-allowed; transform: none !important; 
   padding: 10px;
   font-size: 11px;
   color: var(--muted);
-  background: white; /* or #f8fafc */
+  background: var(--card);
   border-top: 1px solid var(--border);
   border-radius: 0 0 var(--radius) var(--radius);
   font-weight: 500;
@@ -500,18 +619,18 @@ button:disabled{ opacity: 0.5; cursor: not-allowed; transform: none !important; 
   display: flex; align-items: center; justify-content: center; padding: 20px;
 }
 .modalCard {
-  background: white; width: 100%; max-width: 400px; padding: 32px;
+  background: var(--card); width: 100%; max-width: 400px; padding: 32px;
   border-radius: 24px; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
   text-align: center; animation: slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1);
   position: relative;
 }
 .modalCloseBtn {
   position: absolute; top: 16px; right: 16px;
-  background: #f1f5f9; border: none; font-size: 18px; line-height: 1;
+  background: var(--bg); border: none; font-size: 18px; line-height: 1;
   width: 32px; height: 32px; border-radius: 50%; color: var(--muted); cursor: pointer;
   display: flex; align-items: center; justify-content: center; transition: 0.2s;
 }
-.modalCloseBtn:hover { background: #e2e8f0; color: var(--text); }
+.modalCloseBtn:hover { background: var(--border); color: var(--text); }
 
 @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
 
@@ -522,6 +641,7 @@ button:disabled{ opacity: 0.5; cursor: not-allowed; transform: none !important; 
 .inputField {
   width: 100%; padding: 12px 14px; border: 1px solid var(--border);
   border-radius: 12px; font-size: 16px; font-family: inherit; transition: 0.2s;
+  background: var(--card); color: var(--text);
 }
 .inputField:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px var(--accent); }
 .loginBtn { width: 100%; justify-content: center; margin-top: 10px; padding: 14px; font-size: 16px; }
@@ -533,13 +653,15 @@ button:disabled{ opacity: 0.5; cursor: not-allowed; transform: none !important; 
 }
 .rank-item {
   display: flex; align-items: center; justify-content: space-between;
-  font-size: 14px; color: var(--text); padding: 10px 14px;
-  background: white; border-radius: 12px; border: 1px solid var(--border);
+  font-size: 14px; color: #0f172a !important; padding: 10px 14px;
+  background: var(--card); border-radius: 12px; border: 1px solid var(--border);
 }
 .rank-item.top1 { border-color: #fbbf24; background: #fffbeb; }
+.rank-item.top2 { border-color: #94a3b8; background: #f8fafc; }
+.rank-item.top3 { border-color: #d97706; background: #fff7ed; }
 .rank-rank { width: 24px; font-weight: 800; color: var(--muted); }
 .rank-item.top1 .rank-rank { color: #d97706; }
-.rank-name { flex: 1; font-weight: 600; text-align: left; margin-left: 8px; }
+.rank-name { flex: 1; font-weight: 600; text-align: left; margin-left: 8px; color: #0f172a !important; }
 .rank-time { font-family: monospace; font-weight: 700; color: var(--primary-dark); }
 .rank-empty { font-size: 13px; color: var(--muted); padding: 20px; }
 
@@ -582,7 +704,7 @@ button:disabled{ opacity: 0.5; cursor: not-allowed; transform: none !important; 
   font-size: 28px; cursor: pointer; padding: 6px;
   border-radius: 8px; transition: 0.2s;
 }
-.avatar-option:hover { background: #e0f2fe; transform: scale(1.2); }
+.avatar-option:hover { background: var(--accent); transform: scale(1.2); }
 .avatar-option.locked { 
   opacity: 0.3; filter: grayscale(100%); cursor: not-allowed;
 }
@@ -592,12 +714,17 @@ button:disabled{ opacity: 0.5; cursor: not-allowed; transform: none !important; 
 .finish-title { font-size: 28px; font-weight: 900; color: var(--primary-dark); margin-bottom: 12px; }
 .finish-message { font-size: 18px; font-weight: 700; color: var(--text); margin-bottom: 24px; line-height: 1.5; }
 .finish-stats { 
-  background: #f8fafc; border: 1px solid var(--border); border-radius: 16px; 
+  background: var(--bg); border: 1px solid var(--border); border-radius: 16px; 
   padding: 16px; margin-bottom: 24px; display: grid; grid-template-columns: 1fr 1fr; gap: 12px;
 }
 .stat-item { display: flex; flex-direction: column; gap: 4px; }
 .stat-label { font-size: 12px; color: var(--muted); font-weight: 600; }
 .stat-value { font-size: 18px; font-weight: 800; color: var(--primary-dark); font-family: monospace; }
+
+/* 모달 내부 테마 호환성 */
+#myPageModal #newNameInput { background: var(--card) !important; color: var(--text) !important; border-color: var(--border) !important; }
+#rankingModal .rankTab:not(.active) { background: var(--bg) !important; color: var(--muted) !important; }
+
 /* Utility */
 .hidden { display: none !important; }
 </style>
@@ -605,6 +732,47 @@ button:disabled{ opacity: 0.5; cursor: not-allowed; transform: none !important; 
 </head>
 
 <body>
+
+<!-- 크리스마스 장식 -->
+<div class="stars">
+  <div class="star"></div><div class="star"></div><div class="star"></div>
+  <div class="star"></div><div class="star"></div><div class="star"></div>
+  <div class="star"></div><div class="star"></div><div class="star"></div>
+  <div class="star"></div>
+</div>
+<div class="snowflakes">
+  <div class="snowflake">❄</div><div class="snowflake">❅</div><div class="snowflake">❆</div>
+  <div class="snowflake">❄</div><div class="snowflake">❅</div><div class="snowflake">❆</div>
+  <div class="snowflake">❄</div><div class="snowflake">❅</div><div class="snowflake">❆</div><div class="snowflake">❄</div>
+</div>
+
+<!-- 달 -->
+<div class="moon"></div>
+
+<!-- 전구 -->
+<div class="lights">
+  <div class="light"></div><div class="light"></div><div class="light"></div>
+  <div class="light"></div><div class="light"></div><div class="light"></div>
+  <div class="light"></div><div class="light"></div><div class="light"></div>
+  <div class="light"></div><div class="light"></div><div class="light"></div>
+  <div class="light"></div><div class="light"></div><div class="light"></div>
+</div>
+
+<!-- 산타 & 고양이 -->
+<div class="santa-runner"></div>
+<div class="xmascat-runner"></div>
+<div class="xmascat-runner-2"></div>
+
+<!-- 설원 -->
+<div class="snow-landscape">
+  <div class="hill hill-3"></div>
+  <div class="hill hill-2"></div>
+  <div class="hill hill-1"></div>
+  <div class="animated-tree tree-1"></div>
+  <div class="animated-tree tree-2"></div>
+  <div class="animated-tree tree-3"></div>
+  <div class="animated-tree tree-4"></div>
+</div>
 
 <!-- 로그인 모달 (hidden by default, shown if no session) -->
 <div class="modalOverlay hidden" id="loginModal">
@@ -670,14 +838,14 @@ button:disabled{ opacity: 0.5; cursor: not-allowed; transform: none !important; 
         </div>
         <div>
             <div style="display:flex; align-items:center; gap:8px;">
-                <span style="font-size:20px; font-weight:800; color:#0f172a;" id="myNameDisplay">User</span>
+                <span style="font-size:20px; font-weight:800; color:var(--text);" id="myNameDisplay">User</span>
                 <button onclick="enableNameEdit()" style="font-size:12px; padding:2px 6px; background:#f1f5f9; border:none; border-radius:4px; cursor:pointer;" title="이름 변경">✏️</button>
             </div>
             <div id="nameEditForm" class="hidden" style="margin-top:5px; gap:5px;">
                 <input type="text" id="newNameInput" style="padding:4px; border:1px solid #cbd5e1; border-radius:4px; font-size:14px; width:100px;">
                 <button onclick="saveNewName()" style="padding:4px 8px; background:#3b82f6; color:white; border:none; border-radius:4px; font-size:12px; cursor:pointer;">저장</button>
             </div>
-            <div style="font-size:14px; color:#64748b;" id="myIdDisplay">ID: test</div>
+            <div style="font-size:14px; color:var(--muted);" id="myIdDisplay">ID: test</div>
         </div>
         <div style="margin-left:auto;">
             <button onclick="logout()" style="padding:8px 16px; background:#ef4444; color:white; border:none; border-radius:8px; font-size:12px; font-weight:600; cursor:pointer;">로그아웃</button>
@@ -715,7 +883,7 @@ button:disabled{ opacity: 0.5; cursor: not-allowed; transform: none !important; 
         </div>
     </div>
 
-    <div style="font-size:16px; font-weight:800; margin-bottom:15px; ">🎖️ 획득한 업적</div>
+    <div style="font-size:16px; font-weight:800; margin-bottom:15px; color:var(--text);">🎖️ 획득한 업적</div>
     <div id="myAchList" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap:10px; max-height:250px; overflow-y:auto;">
         <!-- JS채움 -->
     </div>
@@ -806,6 +974,16 @@ button:disabled{ opacity: 0.5; cursor: not-allowed; transform: none !important; 
         <option value="20">중남자 (20개)</option>
         <option value="40">상남자 (40개)</option>
         <option value="80">씹상남자 (80개)</option>
+      </select>
+      <div class="select-caret">▼</div>
+    </div>
+
+    <!-- 테마 선택기 -->
+    <div class="select-wrapper">
+      <select id="themeSel">
+        <option value="">☀️ 라이트</option>
+        <option value="theme-dark">🌙 다크</option>
+        <option value="theme-christmas">🎄 크리스마스</option>
       </select>
       <div class="select-caret">▼</div>
     </div>
@@ -1432,10 +1610,10 @@ async function openRankingModal(modeKey){
       ranks.slice(0, limit).forEach((r, idx) => {
         const cls = idx === 0 ? "rank-item top1" : "rank-item";
         html += `
-          <div class="${cls}">
+          <div class="${cls}" style="color:#0f172a;">
             <div style="display:flex; align-items:center;">
                <span class="rank-rank">${idx+1}</span>
-               <span class="rank-name">${escapeHtml(r.name)}</span>
+               <span class="rank-name" style="color:#0f172a;">${escapeHtml(r.name)}</span>
             </div>
             <span class="rank-time">${Number(r.time).toFixed(2)}s</span>
           </div>
@@ -2039,7 +2217,7 @@ function updateMyPageUI(myCodes, stats){
                         <span style="font-weight:700; color:#0f172a; font-size:15px; white-space:nowrap;">${displayName}</span>
                         <span style="font-size:11px; font-weight:600; color:#64748b; background:#e2e8f0; padding:2px 6px; border-radius:4px; white-space:nowrap;">전체 ${per}</span>
                     </div>
-                    <div style="font-size:12px; color:#64748b; margin-top:2px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${displayDesc}</div>
+                    <div style="font-size:12px; color:#475569; margin-top:2px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${displayDesc}</div>
                 </div>
             </div>
         `;
@@ -3253,9 +3431,9 @@ window.switchRankTab = async function(tab) {
             ranks.forEach((r, idx) => {
                 const medal = idx === 0 ? '🥇' : idx === 1 ? '🥈' : idx === 2 ? '🥉' : `${idx+1}`;
                 html += `
-                    <div style="display:flex; align-items:center; gap:12px; padding:10px; background:${idx<3?'#fef9c3':'#f8fafc'}; border-radius:8px; margin-bottom:6px;">
+                    <div style="display:flex; align-items:center; gap:12px; padding:10px; background:${idx<3?'#fef9c3':'#f8fafc'}; border-radius:8px; margin-bottom:6px; color:#0f172a;">
                         <span style="font-size:18px; width:28px; text-align:center;">${medal}</span>
-                        <span style="flex:1; font-weight:600;">${escapeHtml(r.name)}</span>
+                        <span style="flex:1; font-weight:600; color:#0f172a;">${escapeHtml(r.name)}</span>
                         <span style="font-size:14px; font-weight:700; color:#0ea5e9;">${Number(r.time).toFixed(2)}초</span>
                     </div>
                 `;
@@ -3291,9 +3469,9 @@ async function loadPvpRanking() {
                 const total = p.wins + p.losses;
                 const rate = total > 0 ? Math.round((p.wins / total) * 100) : 0;
                 html += `
-                    <div style="display:flex; align-items:center; gap:12px; padding:10px; background:${i<3?'#fef9c3':'#f8fafc'}; border-radius:8px; margin-bottom:8px;">
+                    <div style="display:flex; align-items:center; gap:12px; padding:10px; background:${i<3?'#fef9c3':'#f8fafc'}; border-radius:8px; margin-bottom:8px; color:#0f172a;">
                         <span style="font-size:20px; width:30px; text-align:center;">${medal}</span>
-                        <span style="flex:1; font-weight:600;">${p.name}</span>
+                        <span style="flex:1; font-weight:600; color:#0f172a;">${p.name}</span>
                         <span style="font-size:13px; color:#22c55e; font-weight:700;">${p.wins}승</span>
                         <span style="font-size:13px; color:#ef4444;">${p.losses}패</span>
                         <span style="font-size:12px; color:#64748b;">(${rate}%)</span>
@@ -3308,6 +3486,44 @@ async function loadPvpRanking() {
         rankList.innerHTML = '<div style="text-align:center; padding:20px; color:#ef4444;">랭킹 로드 실패</div>';
     }
 }
+
+// 테마 선택기
+const themeSelector = document.getElementById('themeSel');
+const savedTheme = localStorage.getItem('questree_theme') || '';
+if(savedTheme) {
+  document.body.classList.add(savedTheme);
+  if(themeSelector) themeSelector.value = savedTheme;
+}
+if(themeSelector) {
+  themeSelector.addEventListener('change', function(){
+    document.body.classList.remove('theme-dark', 'theme-christmas');
+    if(this.value) {
+      document.body.classList.add(this.value);
+      localStorage.setItem('questree_theme', this.value);
+    } else {
+      localStorage.removeItem('questree_theme');
+    }
+  });
+}
+
+// 산타 랜덤 점프 (1~10초 간격)
+const santa = document.querySelector('.santa-runner');
+function santaJump() {
+  if(!santa || !document.body.classList.contains('theme-christmas')) {
+    scheduleNextSantaJump();
+    return;
+  }
+  santa.classList.add('jumping');
+  setTimeout(() => {
+    santa.classList.remove('jumping');
+  }, 500);
+  scheduleNextSantaJump();
+}
+function scheduleNextSantaJump() {
+  const delay = Math.random() * 9000 + 1000;
+  setTimeout(santaJump, delay);
+}
+scheduleNextSantaJump();
 
 // 초기 실행 시
 resetAll();
