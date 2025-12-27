@@ -598,6 +598,25 @@ button:disabled{ opacity: 0.5; cursor: not-allowed; transform: none !important; 
 .sortable-ghost{ opacity: 0.6; background: var(--accent); border: 2px dashed var(--primary); }
 .sortable-chosen{ background: var(--card); box-shadow: var(--shadow-lg); }
 
+/* PVP Player List Item */
+.pvp-player {
+  padding: 8px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  margin-bottom: 6px;
+  display: flex;
+  justify-content: space-between;
+  color: var(--text);
+  align-items: center;
+}
+.pvp-player.ready {
+  background: var(--card);
+  border-color: var(--primary);
+  color: var(--primary);
+  font-weight: 700;
+}
+
 /* 하단 저작권 표시 */
 .footer {
   text-align: center;
@@ -1111,9 +1130,9 @@ button:disabled{ opacity: 0.5; cursor: not-allowed; transform: none !important; 
     <!-- Lobby Chat -->
     <div style="margin-top:16px; border-top:1px solid #e2e8f0; padding-top:12px;">
       <div style="font-size:14px; font-weight:600; margin-bottom:8px;">💬 로비 채팅</div>
-      <div id="lobbyChatLog" style="height:80px; overflow-y:auto; padding:8px; font-size:12px; background:#f8fafc; border:1px solid #e2e8f0; border-radius:6px; margin-bottom:8px;"></div>
+      <div id="lobbyChatLog" style="height:80px; overflow-y:auto; padding:8px; font-size:12px; background:var(--bg); color:var(--text); border:1px solid var(--border); border-radius:6px; margin-bottom:8px;"></div>
       <div style="display:flex; gap:4px;">
-        <input type="text" id="lobbyChatInput" placeholder="채팅 입력..." style="flex:1; padding:8px; border:1px solid #cbd5e1; border-radius:6px; font-size:12px;" onkeypress="if(event.key==='Enter') sendLobbyChat()">
+        <input type="text" id="lobbyChatInput" placeholder="채팅 입력..." style="flex:1; padding:8px; border:1px solid var(--border); border-radius:6px; font-size:12px; background:var(--card); color:var(--text);" onkeypress="if(event.key==='Enter') sendLobbyChat()">
         <button onclick="sendLobbyChat()" style="padding:8px 14px; background:var(--primary); color:white; border:none; border-radius:6px; font-size:12px; cursor:pointer;">전송</button>
       </div>
     </div>
@@ -2192,7 +2211,6 @@ function updateMyPageUI(myCodes, stats){
         { id: 'real_man', icon: '☠️', 'name': '남자중의 남자', 'desc': '업적 10개 달성' },
         { id: 'pvp_first_win', icon: '🥊', 'name': '첫 승리', 'desc': 'PVP 첫 승리' },
         { id: 'pvp_10_wins', icon: '🎖️', 'name': 'PVP 마스터', 'desc': 'PVP 10승 달성' },
-
         { id: 'pvp_5_streak', icon: '🛡️', 'name': '불패', 'desc': 'PVP 5연승' },
         { id: 'santa_click', icon: '🎅', 'name': '크리스마스!', 'desc': '???', unlockedDesc: '음, 달성하는 방법을 잊어버렸네요.' },
         { id: 'secret_master', icon: '❓', 'name': '???', 'desc': '???', unlockedIcon: '🔱', unlockedName: '신', unlockedDesc: '모든 업적 달성' },
@@ -2633,7 +2651,7 @@ function startPvpPolling(){
             
             // Update player list
             const listHtml = data.players.map((p, i) => 
-                `<div style="padding:8px; background:${p.ready ? '#ecfdf5' : '#f8fafc'}; border-radius:6px; margin-bottom:6px; display:flex; justify-content:space-between; border:1px solid ${p.ready ? '#10b981' : '#e2e8f0'};">
+                `<div class="pvp-player ${p.ready ? 'ready' : ''}">
                     <span>${i===0 ? '👑 ' : ''}${p.name}</span>
                     <span style="font-size:12px;">${i===0 ? '' : (p.ready ? '✅ 준비완료' : '⏳ 대기중')}</span>
                 </div>`
