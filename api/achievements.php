@@ -53,6 +53,34 @@ if ($mode === 'VIEW_ONLY') {
     exit;
 }
 
+// Special Mode: UNLOCK (Client-triggered achievement)
+$unlock = trim($_POST['unlock'] ?? '');
+if ($unlock) {
+    $myAch = $users[$id]['achievements'] ?? [];
+    $newUnlocked = [];
+    
+    // Allowed client-unlockable achievements
+    $clientAchievements = [
+        'santa_click' => ['icon' => '🎅', 'name' => '크리스마스!', 'desc' => '???']
+    ];
+    
+    if (isset($clientAchievements[$unlock]) && !in_array($unlock, $myAch)) {
+        $ach = $clientAchievements[$unlock];
+        $newUnlocked[] = ['id' => $unlock, 'icon' => $ach['icon'], 'name' => $ach['name'], 'desc' => $ach['desc']];
+        $myAch[] = $unlock;
+        
+        $users[$id]['achievements'] = $myAch;
+        file_put_contents($userFile, json_encode($users, JSON_UNESCAPED_UNICODE), LOCK_EX);
+    }
+    
+    echo json_encode([
+        'success' => true,
+        'new_achievements' => $newUnlocked,
+        'all_achievements' => $myAch
+    ]);
+    exit;
+}
+
 // Block execution if it's not a valid game result
 // mode must be set, time must be > 0, error_count must be >= 0
 if (!$mode || $time <= 0 || $errorCount < 0) {

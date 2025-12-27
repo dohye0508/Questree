@@ -30,11 +30,11 @@
 
 /* 다크 테마 */
 body.theme-dark {
-  --bg: #09090b;
-  --card: #18181b;
+  --bg: #000000;
+  --card: #2a2a2a;
   --text: #f4f4f5;
   --muted: #a1a1aa;
-  --border: #27272a;
+  --border: #3f3f46;
   --primary: #10b981;
   --primary-dark: #059669;
   --primary-light: #34d399;
@@ -122,7 +122,7 @@ body.theme-christmas .snow-landscape { display: block; }
 .tree-4 { right: 22%; bottom: 11vh; transform: scale(1.1); }
 
 /* 산타 달리기 */
-.santa-runner { display: none; position: fixed; z-index: 20; pointer-events: none; width: 32px; height: 32px; background: url('assets/santa_run.png') 0 0; background-size: 192px 32px; animation: santaRun 0.6s steps(6) infinite, santaMove 25s linear infinite; image-rendering: pixelated; bottom: 5vh; transition: bottom 0.3s ease-out; }
+.santa-runner { display: none; position: fixed; z-index: 20; pointer-events: auto; cursor: pointer; width: 32px; height: 32px; background: url('assets/santa_run.png') 0 0; background-size: 192px 32px; animation: santaRun 0.6s steps(6) infinite, santaMove 25s linear infinite; image-rendering: pixelated; bottom: 5vh; transition: bottom 0.3s ease-out; }
 body.theme-christmas .santa-runner { display: block; }
 .santa-runner.jumping { background: url('assets/santa_jump.png') 0 0; background-size: 256px 32px; animation: santaJumpSprite 0.5s steps(8) forwards, santaMove 25s linear infinite; bottom: 15vh; }
 @keyframes santaRun { to { background-position: -192px 0; } }
@@ -614,7 +614,7 @@ button:disabled{ opacity: 0.5; cursor: not-allowed; transform: none !important; 
 /* 모달 공통 */
 .modalOverlay {
   position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-  background: rgba(15, 23, 42, 0.4); backdrop-filter: blur(8px);
+  background: rgba(0, 0, 0, 0.5); backdrop-filter: blur(8px);
   z-index: 99999;
   display: flex; align-items: center; justify-content: center; padding: 20px;
 }
@@ -2194,6 +2194,7 @@ function updateMyPageUI(myCodes, stats){
         { id: 'pvp_10_wins', icon: '🎖️', 'name': 'PVP 마스터', 'desc': 'PVP 10승 달성' },
         { id: 'pvp_50_wins', icon: '💀', 'name': 'PVP 전설', 'desc': 'PVP 50승 달성' },
         { id: 'pvp_5_streak', icon: '🛡️', 'name': '불패', 'desc': 'PVP 5연승' },
+        { id: 'santa_click', icon: '🎅', 'name': '크리스마스!', 'desc': '???', unlockedDesc: '음, 달성하는 방법을 잊어버렸네요.' },
         { id: 'secret_master', icon: '❓', 'name': '???', 'desc': '???', unlockedIcon: '🔱', unlockedName: '신', unlockedDesc: '모든 업적 달성' },
     ];
 
@@ -2356,6 +2357,7 @@ const ACHIEVEMENT_AVATARS = [
     { emoji: '🎖️', achId: 'pvp_10_wins', name: 'PVP 마스터' },
     { emoji: '💀', achId: 'pvp_50_wins', name: 'PVP 전설' },
     { emoji: '🛡️', achId: 'pvp_5_streak', name: '불패' },
+    { emoji: '🎅', achId: 'santa_click', name: '크리스마스!' },
     { emoji: '🔱', achId: 'secret_master', name: '신', lockedEmoji: '❓', lockedName: '???' },
 ];
 
@@ -3524,6 +3526,57 @@ function scheduleNextSantaJump() {
   setTimeout(santaJump, delay);
 }
 scheduleNextSantaJump();
+
+// 산타 클릭 시 점프 + 업적 (1분 안에 10번 클릭)
+let santaClickTimestamps = [];
+
+if(santa) {
+  santa.addEventListener('click', () => {
+    if(santa.classList.contains('jumping')) return;
+    
+    // 점프 애니메이션
+    santa.classList.add('jumping');
+    setTimeout(() => santa.classList.remove('jumping'), 500);
+    
+    // 클릭 시간 기록
+    const now = Date.now();
+    santaClickTimestamps.push(now);
+    
+    // 1분(60,000ms) 지난 기록 제거
+    santaClickTimestamps = santaClickTimestamps.filter(t => now - t <= 60000);
+    
+    console.log(`Santa Clicks (1min): ${santaClickTimestamps.length}`);
+
+    // 10번 클릭 시 업적 시도
+    if(santaClickTimestamps.length >= 10) {
+      if(!userInfo.id) {
+        showToast("로그인이 필요합니다!");
+        return;
+      }
+      
+      // 이미 10번 채웠으면 계속 요청 보내지 않도록 체크할 수도 있지만, 
+      // 서버에서 이미 획득했으면 무시하므로 괜찮음.
+      // 다만 네트워크 부하를 줄이기 위해 로컬에서 체크 권장
+      if(userInfo.achievements && userInfo.achievements.includes('santa_click')) return;
+
+      fetch(`${API_BASE}/achievements.php`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: new URLSearchParams({ id: userInfo.id, unlock: 'santa_click' })
+      }).then(r => r.json()).then(data => {
+        if(data.success) {
+           if(data.new_achievements && data.new_achievements.length > 0) {
+             showAchievementQueue(data.new_achievements);
+           }
+           // 업데이트된 업적 목록 저장
+           if(data.all_achievements) {
+             userInfo.achievements = data.all_achievements;
+           }
+        }
+      }).catch(e => console.error('Santa achievement failed:', e));
+    }
+  });
+}
 
 // 초기 실행 시
 resetAll();
