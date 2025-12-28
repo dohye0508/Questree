@@ -61,7 +61,8 @@ if ($unlock) {
     
     // Allowed client-unlockable achievements
     $clientAchievements = [
-        'santa_click' => ['icon' => '🎅', 'name' => '크리스마스!', 'desc' => '???']
+        'santa_click' => ['icon' => '🎅', 'name' => '크리스마스!', 'desc' => '???'],
+        'christmas_event' => ['icon' => '🎄', 'name' => '메리 크리스마스', 'desc' => '크리스마스 이벤트 클리어']
     ];
     
     if (isset($clientAchievements[$unlock]) && !in_array($unlock, $myAch)) {

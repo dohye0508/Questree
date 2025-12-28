@@ -925,6 +925,22 @@ button:disabled{ opacity: 0.5; cursor: not-allowed; transform: none !important; 
   </div>
 </div>
 
+<!-- 크리스마스 이벤트 완료 모달 -->
+<div class="modalOverlay hidden" id="christmasModal">
+  <div class="modalCard" style="max-width:420px; background: linear-gradient(135deg, #1e3a5f 0%, #0f172a 100%); border: 2px solid #fbbf24;">
+    <div style="font-size:48px; margin-bottom:16px;">🎄🎅🎁</div>
+    <div style="font-size:24px; font-weight:900; color:#fbbf24; margin-bottom:16px;">메리 크리스마스!</div>
+    <div style="font-size:15px; color:#f1f5f9; line-height:1.9; text-align:left; padding:0 10px;">
+      <p style="margin-bottom:14px;">🎄 <strong style="color:#fbbf24;">인천과학고 학생 여러분,</strong> 즐거운 크리스마스 보내셨나요?</p>
+      <p style="margin-bottom:14px;">💪 쉼 없이 치열하게 달려온 올 한 해, 모두 정말 고생 많으셨습니다.</p>
+      <p style="margin-bottom:14px;">🌟 다가오는 새해에는 여러분이 흘린 땀방울만큼, 더 큰 성장과 눈부신 결실이 함께하기를 진심으로 응원합니다!</p>
+      <p style="margin-bottom:14px;">🎉 남은 연말 행복하게 마무리하시길 바랍니다.</p>
+      <p style="margin-bottom:0; color:#94a3b8; font-size:13px; text-align:right;">- 1316 엄지오 드림</p>
+    </div>
+    <button class="primary loginBtn" id="christmasModalCloseBtn" style="font-size:16px; padding:14px; margin-top:20px; background:#ef4444;">🎅 확인</button>
+  </div>
+</div>
+
 <!-- PVP Modals Moved to End of Body -->
 
 
@@ -1734,6 +1750,15 @@ function closeFinishModal(){ finishModal.classList.add("hidden"); }
 finishCloseBtn.addEventListener("click", closeFinishModal);
 finishModal.addEventListener("click", (e)=>{ if(e.target===finishModal) closeFinishModal(); });
 
+// 크리스마스 모달 닫기
+const christmasModal = document.getElementById('christmasModal');
+const christmasModalCloseBtn = document.getElementById('christmasModalCloseBtn');
+if(christmasModalCloseBtn) {
+  christmasModalCloseBtn.addEventListener('click', () => christmasModal.classList.add('hidden'));
+}
+if(christmasModal) {
+  christmasModal.addEventListener('click', (e) => { if(e.target === christmasModal) christmasModal.classList.add('hidden'); });
+}
 
 
 /* 데이터 로드 */
@@ -1874,13 +1899,40 @@ async function startRun(){
   } catch(e) { showToast("서버 연결 실패"); return; }
   
   try{
-    const pool = koPool;
-    const picked = sampleUnique(pool, N);
-    const sorted = [...picked].sort((a,b) => koCollator.compare(a,b));
-    const rankMap = new Map(sorted.map((w,i)=>[w, i+1]));
-    wordMap = picked.map(w => w); 
-    let out = picked.map((w, i) => ({ wid: i+1, key: rankMap.get(w), label: w }));
-    shuffle(out); items = ensureNotAlreadySorted(out);
+    // 🎄 크리스마스 이벤트: 크리스마스 테마 선택 후 첫 판 (10개 모드)
+    const isChristmasTheme = document.body.classList.contains('theme-christmas');
+    const hasPlayedChristmas = localStorage.getItem('questree_christmas_played');
+    const isChristmasEvent = (N === 10 && isChristmasTheme && !hasPlayedChristmas);
+    let isChristmasMode = false;
+    
+    // 크리스마스 테마 첫 판 플래그 설정
+    if(isChristmasTheme && !hasPlayedChristmas) {
+      localStorage.setItem('questree_christmas_played', 'true');
+    }
+    
+    if(isChristmasEvent) {
+      // 크리스마스 특별 문장 (순서대로 정렬해야 함)
+      const christmasSentence = ['여러분', '행복한', '크리스마스', '보내셨나요?', '새해에는', '더욱', '기쁜', '일만', '가득하길', '바랍니다!'];
+      const picked = [...christmasSentence];
+      // 문장 순서 = 정답 순서 (1, 2, 3, ...)
+      wordMap = picked.map(w => w);
+      let out = picked.map((w, i) => ({ wid: i+1, key: i+1, label: w }));
+      shuffle(out); items = ensureNotAlreadySorted(out);
+      isChristmasMode = true;
+      showToast('🎄 크리스마스 이벤트! 문장을 완성하세요!');
+    } else {
+      // 일반 모드
+      const pool = koPool;
+      const picked = sampleUnique(pool, N);
+      const sorted = [...picked].sort((a,b) => koCollator.compare(a,b));
+      const rankMap = new Map(sorted.map((w,i)=>[w, i+1]));
+      wordMap = picked.map(w => w); 
+      let out = picked.map((w, i) => ({ wid: i+1, key: rankMap.get(w), label: w }));
+      shuffle(out); items = ensureNotAlreadySorted(out);
+    }
+    
+    // 크리스마스 모드 플래그 저장 (완료 시 사용)
+    window.isChristmasEventMode = isChristmasMode;
   }catch(e){ setStatus("오류"); showToast("생성 실패"); return; }
 
   memoBox.style.display="none"; listWrap.style.display="block";
@@ -2018,18 +2070,49 @@ function checkFinish(keys, currInv){
     // PVP 모드 체크 (변수가 선언되어 있어야 함)
     const isPvp = (typeof pvpMode !== 'undefined' && pvpMode);
 
-    if(!isPvp) {
+    // 크리스마스 이벤트는 랭킹 등록 안함 (완료 모달은 표시)
+    if(!isPvp && !window.isChristmasEventMode) {
       saveRanking(sizeSel.value, userInfo.name, finalTime).then(() => {
-          checkTop5Reward(sizeSel.value, difficultyText, finalTime);
           checkAchievements(sizeSel.value, finalTime, errorCount);
       });
+    }
+    
+    // 완료 모달 표시 (PVP 아니면 항상)
+    if(!isPvp) {
+      checkTop5Reward(sizeSel.value, difficultyText, finalTime);
     }
 
     // Auto-Upload Logs
     logAction("END",0,0,0,0, currentWids().join("|"));
     uploadLogsToServer(); // Send logs immediately
     
-    showToast(`정렬 완료! 기록: ${finalTime}초`);
+    // 크리스마스 이벤트 완료 시 특별 모달 (한 번만 표시)
+    if(window.isChristmasEventMode) {
+      const hasSeenChristmas = localStorage.getItem('questree_christmas_seen');
+      if(!hasSeenChristmas) {
+        const christmasModal = document.getElementById('christmasModal');
+        if(christmasModal) christmasModal.classList.remove('hidden');
+        localStorage.setItem('questree_christmas_seen', 'true');
+      } else {
+        showToast('🎄 메리 크리스마스! 문장 완성! 🎅');
+      }
+      // 크리스마스 업적 해금
+      if(userInfo.id && (!userInfo.achievements || !userInfo.achievements.includes('christmas_event'))) {
+        fetch(`${API_BASE}/achievements.php`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          body: new URLSearchParams({ id: userInfo.id, unlock: 'christmas_event' })
+        }).then(r => r.json()).then(data => {
+          if(data.success && data.new_achievements && data.new_achievements.length > 0) {
+            showAchievementQueue(data.new_achievements);
+          }
+          if(data.all_achievements) userInfo.achievements = data.all_achievements;
+        }).catch(e => console.error('Christmas achievement failed:', e));
+      }
+      window.isChristmasEventMode = false;
+    } else {
+      showToast(`정렬 완료! 기록: ${finalTime}초`);
+    }
 
     // PVP 완료 처리
     if(isPvp && typeof sendPvpFinish === 'function'){
@@ -2207,6 +2290,7 @@ function updateMyPageUI(myCodes, stats){
         { id: 'pvp_first_win', icon: '🥊', 'name': '첫 승리', 'desc': 'PVP 첫 승리' },
         { id: 'pvp_10_wins', icon: '🎖️', 'name': 'PVP 마스터', 'desc': 'PVP 10승 달성' },
         { id: 'pvp_5_streak', icon: '🛡️', 'name': '불패', 'desc': 'PVP 5연승' },
+        { id: 'christmas_event', icon: '🎄', 'name': '메리 크리스마스', 'desc': '???', unlockedDesc: '크리스마스 이벤트 클리어' },
         { id: 'santa_click', icon: '🎅', 'name': '크리스마스!', 'desc': '???', unlockedDesc: '음, 달성하는 방법을 잊어버렸네요.' },
         { id: 'secret_master', icon: '❓', 'name': '???', 'desc': '???', unlockedIcon: '🔱', unlockedName: '신', unlockedDesc: '모든 업적 달성' },
     ];
@@ -2370,6 +2454,7 @@ const ACHIEVEMENT_AVATARS = [
     { emoji: '🎖️', achId: 'pvp_10_wins', name: 'PVP 마스터' },
 
     { emoji: '🛡️', achId: 'pvp_5_streak', name: '불패' },
+    { emoji: '🎄', achId: 'christmas_event', name: '메리 크리스마스' },
     { emoji: '🎅', achId: 'santa_click', name: '크리스마스!' },
     { emoji: '🔱', achId: 'secret_master', name: '신', lockedEmoji: '❓', lockedName: '???' },
 ];
