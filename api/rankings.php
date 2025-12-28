@@ -78,25 +78,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     }
 
-    // Verify final order hash matches server's stored hash
-    $finalOrder = json_decode($_POST['final_order'] ?? '[]', true);
-    
-    // Get sorted hash from token
-    $tokensFile = '../data/game_tokens.json';
-    $tokens = file_exists($tokensFile) ? json_decode(file_get_contents($tokensFile), true) : [];
-    
-    if (isset($tokens[$token]) && isset($tokens[$token]['sorted_hash'])) {
-        $storedHash = $tokens[$token]['sorted_hash'];
-        
-        // Compute hash of final order
-        $finalHash = hash('sha256', implode('|', $finalOrder));
-        
-        // Compare hashes
-        if ($finalHash !== $storedHash) {
-            echo json_encode(['error' => '정렬 순서 검증 실패 - 치팅이 감지되었습니다']);
-            exit;
-        }
-    }
+    // NOTE: sorted_hash 검증은 제거됨
+    // 이유: 서버가 단어 목록을 모르는 구조에서는 의미없음
+    // 대신 토큰 검증, 시간 검증, 이동 패턴 검증으로 치팅 방지
 
     $data = [];
     if (file_exists($dataFile)) {

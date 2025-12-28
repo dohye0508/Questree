@@ -1929,9 +1929,15 @@ function initSortable(){
       dragging=true; orderBeforeMove=currentWids().join("|");
       try{ const r = evt.item.getBoundingClientRect(); lastClientY = (r.top + r.bottom) / 2; }catch(_){}
       startScrollLoop(); document.body.style.cursor="grabbing";
+      // 모바일에서 드래그 중 화면 스크롤 방지
+      document.body.style.overflow = 'hidden';
+      document.documentElement.style.overflow = 'hidden';
     },
     onEnd: (evt) => {
       dragging=false; stopScrollLoop(); document.body.style.cursor="";
+      // 모바일 스크롤 복원
+      document.body.style.overflow = '';
+      document.documentElement.style.overflow = '';
       if(evt.oldIndex!==evt.newIndex){
         // Anti-macro: check drag speed
         const now = performance.now();
